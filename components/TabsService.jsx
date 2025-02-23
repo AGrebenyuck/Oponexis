@@ -141,7 +141,6 @@ const TabsService = () => {
 					exit={{ opacity: 0, x: -20 }}
 					transition={{ duration: 0.4 }}
 					className='flex flex-col lg:flex-row gap-5 w-full'
-					{...handlers}
 				>
 					<div className='relative 2xl:max-w-[738px] w-full h-[172px] lg:h-auto lg:max-w-[600px] sm:h-[300px] rounded-3xl'>
 						<Image

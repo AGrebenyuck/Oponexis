@@ -4,7 +4,6 @@ import Hero from '@/components/Hero'
 import HowItWorksSection from '@/components/HowItWorksSection'
 import OffersSection from '@/components/OffersSection'
 import ReservationSection from '@/components/ReservationSection'
-import ServiceSection from '@/components/ServiceSection'
 import TestimonialsSection from '@/components/TestimonialsSection'
 
 export default function Home() {
@@ -13,7 +12,7 @@ export default function Home() {
 			<Hero />
 			<OffersSection />
 			<HowItWorksSection />
-			<ServiceSection />
+			{/* <ServiceSection /> */}
 			<ReservationSection />
 			<TestimonialsSection />
 			<FAQSection />

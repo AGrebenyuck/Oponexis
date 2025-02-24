@@ -26,7 +26,7 @@ const TextArea = ({
 
 	return (
 		<textarea
-			className={`w-full bg-transparent border-[0.4px] md:border-2 border-white rounded-xl md:rounded-3xl px-3 py-4 md:px-6 md:py-4 font-semibold transition focus:border-white focus:ring-2 focus:ring-white ${
+			className={`w-full bg-transparent border md:border-2 border-white rounded-xl md:rounded-3xl px-3 py-4 md:px-6 md:py-4 font-semibold transition focus:border-white focus:ring-2 focus:ring-white ${
 				disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
 			}`}
 			value={text}

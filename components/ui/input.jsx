@@ -17,7 +17,7 @@ const Input = ({
 
 	return (
 		<div
-			className={`flex items-center border-[0.4px] md:border-2 border-white rounded-xl md:rounded-3xl px-3 py-4 md:px-6 md:py-4 font-semibold transition focus-within:border-white focus-within:ring-2 focus-within:ring-white ${
+			className={`flex items-center border md:border-2 border-white rounded-xl md:rounded-3xl px-3 py-4 md:px-6 md:py-4 font-semibold transition focus-within:border-white focus-within:ring-2 focus-within:ring-white ${
 				disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
 			}`}
 		>

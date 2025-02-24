@@ -106,7 +106,7 @@ function StepCard({ title, description, bgIcon, numberIcon }) {
 
 			{/* Content */}
 			<div className='relative z-10 max-w-[208px] 2xl:max-w-[300px] text-left sm:text-center lg:text-left'>
-				<h3 className='text-lg lg:text-2xl 2xl:text-4xl font-extrabold text-shadow mb-3 lg:mb-4 2xl:mb-6'>
+				<h3 className='text-lg lg:text-2xl 2xl:text-4xl font-extrabold mb-3 lg:mb-4 2xl:mb-6'>
 					{title}
 				</h3>
 				<p className='font-semibold text-sm sm:text-base md:text-lg lg:text-xl 2xl:text-3xl'>

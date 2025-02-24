@@ -48,7 +48,7 @@ const Select = ({
 	return (
 		<div ref={selectRef} className='relative inline-block w-full'>
 			<button
-				className='border-[0.4px] md:border-2 border-white rounded-xl md:rounded-3xl px-3 py-4 md:px-6 md:py-4 font-semibold cursor-pointer flex justify-between items-center w-full'
+				className='border md:border-2 border-white rounded-xl md:rounded-3xl px-3 py-4 md:px-6 md:py-4 font-semibold cursor-pointer flex justify-between items-center w-full'
 				onClick={() => setOpen(!open)}
 				type='button'
 			>
@@ -88,7 +88,7 @@ const Select = ({
 			</button>
 
 			{open && (
-				<div className='absolute w-full mt-1 bg-primary-blue border-[0.4px] lg:border-2 border-white rounded-xl lg:rounded-3xl shadow-lg p-3 flex flex-col items-center gap-1'>
+				<div className='absolute w-full mt-1 bg-primary-blue border lg:border-2 border-white rounded-xl lg:rounded-3xl shadow-lg p-3 flex flex-col items-center gap-1'>
 					{Children.map(children, child =>
 						cloneElement(child, { onSelect: handleSelect, selected, multiple })
 					)}

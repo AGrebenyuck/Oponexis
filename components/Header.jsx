@@ -125,16 +125,17 @@ const Header = () => {
 					</SignedIn>
 
 					{/* Бургер-меню */}
-					<div
+					<button
+						type='button'
 						className='2xl:hidden z-50'
 						onClick={() => setMenuOpen(!menuOpen)}
 					>
-						<div id='nav-icon4' className={`${menuOpen ? 'open' : ''}`}>
+						<span id='nav-icon4' className={`${menuOpen ? 'open' : ''}`}>
 							<span></span>
 							<span></span>
 							<span></span>
-						</div>
-					</div>
+						</span>
+					</button>
 				</div>
 
 				<style jsx>{`

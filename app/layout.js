@@ -42,6 +42,10 @@ export default function RootLayout({ children }) {
 			}}
 		>
 			<html lang='pl' className='overflow-x-hidden'>
+				<head>
+					<link rel='icon' href='/siteIcon/favicon.ico' type='x-icon' />
+					<link rel='apple-touch-icon' href='/siteIcon/icon.svg'></link>
+				</head>
 				<body
 					className={`${montserratRegular.variable} ${NunitoFont.variable} antialiased text-sm sm:text-xl lg:text-2xl 3xl:text-3xl font-normal overflow-x-hidden`}
 				>

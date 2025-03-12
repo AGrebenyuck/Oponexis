@@ -1,14 +1,17 @@
 'use client'
 
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
+import { checkUser } from '@/lib/checkUser'
+import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Button from './ui/button'
+import UserMenu from './userMenu'
 
 const Header = () => {
 	const [menuOpen, setMenuOpen] = useState(false)
+	const [role, setRole] = useState('user')
 	const [isLargeScreen, setIsLargeScreen] = useState(false)
 
 	useEffect(() => {
@@ -16,11 +19,26 @@ const Header = () => {
 			setIsLargeScreen(window.innerWidth >= 1440)
 		}
 		handleResize()
+		const fetchUser = async () => {
+			const role = await checkUser()
+			setRole(role?.role)
+		}
+
+		fetchUser()
 	}, [])
 
 	const menuVariants = {
 		open: { opacity: 1, x: 0 },
 		closed: { opacity: 0, x: '100vw' },
+	}
+
+	const handleClick = (e, targetId) => {
+		e.preventDefault()
+
+		document?.getElementById(targetId)?.scrollIntoView({
+			behavior: 'smooth',
+			block: 'start',
+		})
 	}
 
 	return (
@@ -41,7 +59,8 @@ const Header = () => {
 					<ul className='flex gap-11 font-semibold'>
 						<li>
 							<Link
-								href={'/'}
+								href={'#howItWorks'}
+								onClick={e => handleClick(e, 'howItWorks')}
 								className='transition-colors hover:text-accent-blue'
 							>
 								Jak działamy
@@ -49,16 +68,18 @@ const Header = () => {
 						</li>
 						<li>
 							<Link
-								href={'/'}
+								href={'#services'}
 								className='transition-colors hover:text-accent-blue'
+								onClick={e => handleClick(e, 'services')}
 							>
 								Usługi
 							</Link>
 						</li>
 						<li>
 							<Link
-								href={'/'}
+								href={'#contacts'}
 								className='transition-colors hover:text-accent-blue'
+								onClick={e => handleClick(e, 'contacts')}
 							>
 								Kontakt
 							</Link>
@@ -74,24 +95,27 @@ const Header = () => {
 					>
 						<li>
 							<Link
-								href={'/'}
-								className='title-2 transition-colors hover:text-accent-blue'
+								href={'#howItWorks'}
+								onClick={e => handleClick(e, 'howItWorks')}
+								className='transition-colors hover:text-accent-blue'
 							>
 								Jak działamy
 							</Link>
 						</li>
 						<li>
 							<Link
-								href={'/'}
-								className='title-2 transition-colors hover:text-accent-blue'
+								href={'#services'}
+								className='transition-colors hover:text-accent-blue'
+								onClick={e => handleClick(e, 'services')}
 							>
 								Usługi
 							</Link>
 						</li>
 						<li>
 							<Link
-								href={'/'}
-								className='title-2 transition-colors hover:text-accent-blue'
+								href={'#contacts'}
+								className='transition-colors hover:text-accent-blue'
+								onClick={e => handleClick(e, 'contacts')}
 							>
 								Kontakt
 							</Link>
@@ -114,14 +138,7 @@ const Header = () => {
 						</SignInButton>
 					</SignedOut>
 					<SignedIn>
-						<UserButton
-							appearance={{
-								elements: {
-									avatarBox:
-										'w-12 h-12 md:w-14 md:h-14 xl:w-18 xl:h-18 3xl:w-24 3xl:h-24',
-								},
-							}}
-						/>
+						<UserMenu role={role} />
 					</SignedIn>
 
 					{/* Бургер-меню */}

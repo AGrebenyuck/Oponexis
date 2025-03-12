@@ -54,7 +54,7 @@ const steps = [
 
 const HowItWorksSection = () => {
 	return (
-		<div className='container-padding'>
+		<div id='howItWorks' className='container-padding'>
 			<h2 className='title'>Jak to działa?</h2>
 			<div className='grid grid-cols-1 grid-rows-3 lg:grid-rows-1 lg:grid-cols-3 3xl:grid-cols-[minmax(250px,540px)_auto_minmax(250px,540px)] gap-4 2xl:gap-6'>
 				{/* Step 1 */}

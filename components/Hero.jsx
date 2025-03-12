@@ -6,6 +6,15 @@ import { useEffect, useState } from 'react'
 import HeroSlider from './HeroSlider'
 import Button from './ui/button'
 
+const handleClick = (e, targetId) => {
+	e.preventDefault()
+
+	document?.getElementById(targetId)?.scrollIntoView({
+		behavior: 'smooth',
+		block: 'start',
+	})
+}
+
 const Hero = () => {
 	const [bgImage, setBgImage] = useState('/background-header.jpg')
 	const [isMobile, setIsMobile] = useState(true)
@@ -49,10 +58,10 @@ const Hero = () => {
 						w korkach – Nasz mobilny serwis przyjedzie do ciebie .
 					</p>
 					<div className='flex flex-col gap-2 sm:flex-row sm:gap-5'>
-						<Link href='/'>
+						<Link href={'#services'} onClick={e => handleClick(e, 'services')}>
 							<Button className='w-full'>Rezerwacja</Button>
 						</Link>
-						<Link href='/'>
+						<Link href='tel:+48776888488'>
 							<Button type='alternative' className='w-full'>
 								Zadzwoń
 							</Button>

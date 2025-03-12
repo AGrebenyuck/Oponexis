@@ -10,7 +10,7 @@ import {
 
 const ContactsSection = () => {
 	return (
-		<div className='container-padding'>
+		<div id='contacts' className='container-padding'>
 			<div className='relative'>
 				<Link href='/'>
 					<Image
@@ -32,12 +32,18 @@ const ContactsSection = () => {
 						</p>
 						<ul className='flex gap-3 md:relative md:mt-8 absolute top-0 right-0'>
 							<li>
-								<Link href='/'>
+								<Link
+									href='https://www.facebook.com/share/15No3dYV2d/?mibextid=wwXIfr'
+									target='_blank'
+								>
 									<FacebookIcon className='w-8 h-8 md:w-12 md:h-12 lg:w-18 lg:h-18' />
 								</Link>
 							</li>
 							<li>
-								<Link href='/'>
+								<Link
+									href='https://www.linkedin.com/in/oleksandr-zabrodskyi-a1530034a'
+									target='_blank'
+								>
 									<LinkedInIcon className='w-8 h-8 md:w-12 md:h-12 lg:w-18 lg:h-18' />
 								</Link>
 							</li>
@@ -60,12 +66,15 @@ const ContactsSection = () => {
 						</h4>
 						<ul className='flex flex-col gap-2 md:gap-5'>
 							<li>
-								<Link href='/'>
+								<Link
+									href='https://maps.app.goo.gl/x7Jr3BnURYFCvCLw7'
+									target='_blank'
+								>
 									<div className='flex gap-5 md:gap-8 2xl:gap-11 items-center'>
 										<MarkIcon className='w-[22px] h-[22px] md:w-[40px] md:h-[45px]' />
 										<div>
 											<h4 className='font-semibold'>Adres</h4>
-											<h5>Opole</h5>
+											<address>Opole</address>
 										</div>
 									</div>
 								</Link>

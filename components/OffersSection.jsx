@@ -44,10 +44,10 @@ const OffersSection = () => {
 		},
 	]
 	return (
-		<div className='container-padding pt-8'>
-			<h2 className='title'>CO OFERUJEMY?</h2>
-			<div className='flex flex-col 2xl:flex-row gap-5 mb-10 lg:gap-12 lg:mb-[64px]'>
-				<div className='rounded-3xl 2xl:max-w-[863px] w-full '>
+		<div className='container-padding pt-8 flex flex-col gap-5'>
+			<h2 className='title order-1'>CO OFERUJEMY?</h2>
+			<div className='flex flex-col 2xl:flex-row gap-5 mb-10 lg:gap-12 lg:mb-[64px] order-3 lg:order-2'>
+				<div className='rounded-3xl 2xl:max-w-[863px] w-full'>
 					<Image
 						src='/offerImage.png'
 						alt='offerBg'
@@ -67,13 +67,13 @@ const OffersSection = () => {
 					</p>
 				</div>
 			</div>
-			<div>
+			<div className='order-2 lg:order-3'>
 				<ul className='flex flex-wrap justify-around lg:justify-between xl:justify-around items-baseline gap-y-8 sm:gap-y-14'>
 					{advantages.map(advantage => {
 						return (
 							<li
 								key={advantage.id}
-								className='flex flex-col gap-4 items-center w-[140px] sm:w-[40%] md:w-[150px] 2xl:w-auto max-w-[252px] text-center text-base md:text-lg lg:text-xl 2xl:text-3xl font-semibold'
+								className='flex flex-col gap-4 items-center w-[140px] sm:w-[40%] md:w-[150px] 2xl:w-auto max-w-[252px] text-center text-sm md:text-lg lg:text-xl 2xl:text-3xl font-semibold'
 							>
 								{advantage.icon}
 								<p>{advantage.title}</p>

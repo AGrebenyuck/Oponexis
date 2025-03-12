@@ -83,16 +83,19 @@ body {
 	.container-padding {
 		@apply px-4 pt-11 sm:px-10 md:px-14 2xl:px-16 sm:pt-14 md:pt-16;
 	}
+	.scrollbar {
+		@apply [&::-webkit-scrollbar]:w-2
+		[&::-webkit-scrollbar-track]:bg-gray-100
+		[&::-webkit-scrollbar-thumb]:bg-accent-blue
+		[&::-webkit-scrollbar-track]:rounded-full  
+		[&::-webkit-scrollbar-thumb]:rounded-full;
+	}
 }
 .shadow-otp {
 	box-shadow: rgb(255, 255, 255) 0px 0px 0px 1px,
 		rgb(255, 255, 255) 0px 0px 1px 0px !important;
 }
 
-.text-shadow {
-	filter: drop-shadow(-2px 5px 144px #fff)
-		drop-shadow(4px -1px 30px rgba(19, 44, 67, 0.7));
-}
 button.active {
 	@apply lg:bg-accent-blue text-white relative after:w-full after:h-[3px] after:absolute after:bg-white after:bottom-0 after:rounded-lg after:left-0 lg:after:hidden;
 }
@@ -109,4 +112,19 @@ button,
 input,
 textarea {
 	font-family: var(--nunito-font);
+}
+
+@keyframes fadeSlideIn {
+	from {
+		transform: translateY(-50px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+.animate-fadeSlideIn {
+	animation: fadeSlideIn 0.3s ease-out forwards;
 }

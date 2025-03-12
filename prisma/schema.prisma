@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  clerkUserId  String        @unique
+  email        String        @unique
+  phone        String?
+  name         String?
+  username     String
+  role         String        @default("user")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  reservations Reservation[]
+  referrals    Referral[]    @relation("Referrer")
+  referee      Referral[]    @relation("Referee")
+  bonuses      Bonus[]
+  comments     Comment[]
+  sources      UserSource[]
+}
+
+model Reservation {
+  id             String               @id @default(cuid())
+  userId         String
+  user           User                 @relation(fields: [userId], references: [id])
+  address        String
+  serviceName    String
+  contactInfo    String
+  additionalInfo String?
+  promoCode      String?
+  startTime      DateTime
+  endTime        DateTime
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  services       ServiceReservation[]
+}
+
+model Service {
+  id           String               @id @default(cuid())
+  name         String
+  description  String?
+  duration     Int
+  price        Float
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  reservations ServiceReservation[]
+}
+
+model PromoCode {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  type       String
+  value      Float
+  maxUses    Int?
+  uses       Int       @default(0)
+  validUntil DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Referral {
+  id          String   @id @default(cuid())
+  referrerId  String
+  referrer    User     @relation("Referrer", fields: [referrerId], references: [id])
+  refereeId   String
+  referee     User     @relation("Referee", fields: [refereeId], references: [id])
+  level       Int      @default(1)
+  bonusAmount Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Bonus {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  amount    Float
+  type      String
+  source    String?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  service   String
+  text      String
+  rating    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserSource {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  source    String
+  campaign  String?
+  medium    String?
+  term      String?
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceReservation {
+  id            String      @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id])
+  serviceId     String
+  service       Service     @relation(fields: [serviceId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Calendar {
+  id        String            @id @default(cuid())
+  days      DayAvailability[]
+  timeGap   Int
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model DayAvailability {
+  id             String    @id @default(uuid())
+  availabilityId String
+  day            DayOfWeek
+  startTime      DateTime
+  endTime        DateTime
+
+  availability Calendar @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}

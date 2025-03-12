@@ -1,8 +1,10 @@
 'use client'
 
+import { getServices } from '@/actions/service'
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
-import { useState } from 'react'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import {
 	AirConditionIcon,
@@ -99,8 +101,28 @@ const tabs = [
 	},
 ]
 
+const handleClick = (e, targetId) => {
+	e.preventDefault()
+	console.log(document)
+	console.log(e)
+	console.log(targetId)
+
+	document?.getElementById(targetId)?.scrollIntoView({
+		behavior: 'smooth',
+		block: 'start',
+	})
+}
+
 const TabsService = () => {
 	const [activeTab, setActiveTab] = useState(0)
+	const [prices, setPrices] = useState([])
+	useEffect(() => {
+		const fetchData = async () => {
+			const data = await getServices()
+			setPrices(data) // Ждём выполнения
+		}
+		fetchData()
+	}, [])
 
 	const handlers = useSwipeable({
 		onSwipedLeft: () => {
@@ -172,9 +194,22 @@ const TabsService = () => {
 						</ul>
 						<div>
 							<p className='font-semibold'>
-								Cena: <span className='text-[#FD6D02]'>100 zł</span>
+								Cena:{' '}
+								<span className='text-[#FD6D02]'>
+									{
+										prices?.prices?.find(
+											price => price.name === tabs[activeTab].title
+										)?.price
+									}{' '}
+									zł
+								</span>
 							</p>
-							<Button className='p-5 mt-4 w-full'>Złóż zgłoszenie</Button>
+							<Link
+								href={'#reservation'}
+								onClick={e => handleClick(e, 'reservation')}
+							>
+								<Button className='p-5 mt-4 w-full'>Złóż zgłoszenie</Button>
+							</Link>
 						</div>
 					</div>
 				</motion.div>

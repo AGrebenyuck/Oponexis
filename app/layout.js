@@ -47,7 +47,7 @@ export default function RootLayout({ children }) {
 					<link rel='apple-touch-icon' href='/siteIcon/icon.svg'></link>
 				</head>
 				<body
-					className={`${montserratRegular.variable} ${NunitoFont.variable} antialiased text-sm sm:text-xl lg:text-2xl 3xl:text-3xl font-normal overflow-x-hidden`}
+					className={`${montserratRegular.variable} ${NunitoFont.variable} antialiased text-sm sm:text-xl lg:text-2xl 3xl:text-3xl font-normal overflow-x-clip`}
 				>
 					<Header />
 					<main>{children}</main>

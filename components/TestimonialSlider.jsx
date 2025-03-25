@@ -165,7 +165,7 @@ const TestimonialSlider = () => {
 									<p className='font-semibold text-base lg:text-xl 2xl:text-3xl mt-1 lg:mt-2'>
 										{review.rating}
 									</p>
-									<StarIcon className='w-[23px] h-[22px] lg:w-[40px] lg:h-[40px] 2xl:w-[60px] 2xl:h-[59px]' />
+									<StarIcon className='w-[23px] h-[22px] lg:w-[40px] lg:h-[40px] 2xl:w-[60px] 2xl:h-[59px] fill-secondary-orange' />
 								</div>
 							</div>
 						</div>

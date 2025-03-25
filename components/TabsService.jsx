@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import {
-	AirConditionIcon,
 	OilChangeIcon,
 	WheelBalancingIcon,
 	WheelHoldIcon,
@@ -50,22 +49,7 @@ const tabs = [
 			'• Sprawdzamy poziom oleju i szczelność systemu.',
 		],
 	},
-	{
-		key: '3',
-		icon: (
-			<AirConditionIcon
-				className={`w-[45px] h-[45px] md:w-[60px] md:h-[60px] lg:fill-secondary-orange`}
-			/>
-		),
-		title: 'Serwis klimatyzacji',
-		image: '/air-condition.png',
-		description:
-			'Dbamy o Twój komfort i sprawne działanie systemu klimatyzacji.',
-		descriptionList: [
-			'• Diagnostyka systemu klimatyzacji.',
-			'• Sprawdzanie i uzupełnianie czynnika chłodniczego, jeśli to konieczne.',
-		],
-	},
+
 	{
 		key: '4',
 		icon: (
@@ -103,9 +87,6 @@ const tabs = [
 
 const handleClick = (e, targetId) => {
 	e.preventDefault()
-	console.log(document)
-	console.log(e)
-	console.log(targetId)
 
 	document?.getElementById(targetId)?.scrollIntoView({
 		behavior: 'smooth',

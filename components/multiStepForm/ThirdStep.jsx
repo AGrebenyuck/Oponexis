@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import { usePriceContext } from './MultiStepLayout'
 
@@ -6,10 +8,15 @@ const ThirdStep = () => {
 	const info = getValues()
 	const price = usePriceContext()
 
-	console.log(price)
+	useEffect(() => {
+		document?.getElementById('formInfo')?.scrollIntoView({
+			behavior: 'smooth',
+			block: 'center',
+		})
+	}, [])
 
 	return (
-		<>
+		<div id='formInfo'>
 			<h2 className='font-semibold mb-5 lg:mb-16'>Dane</h2>
 			<table className='border-separate border-spacing-3 lg:border-spacing-y-10'>
 				<tbody>
@@ -37,7 +44,11 @@ const ThirdStep = () => {
 					</tr>
 					<tr>
 						<td>Data:</td>
-						<td className='font-semibold pl-3'>{`${info.time}-${info.timeEnd}, ${info.date}`}</td>
+						<td className='font-semibold pl-3'>{`${info.time}-${
+							info.timeEnd
+						}, ${DateTime.fromJSDate(new Date(info.date)).toFormat(
+							'dd-MM-yyyy'
+						)}`}</td>
 					</tr>
 					<tr>
 						<td>Cena:</td>
@@ -50,7 +61,7 @@ const ThirdStep = () => {
 					</tr>
 				</tbody>
 			</table>
-		</>
+		</div>
 	)
 }
 

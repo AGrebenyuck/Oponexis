@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,26 +9,26 @@ datasource db {
 
 model User {
   id           String        @id @default(cuid())
-  clerkUserId  String        @unique
+  clerkUserId  String?       @unique
+  zadarmaId    String?
   email        String        @unique
   phone        String?
   name         String?
-  username     String
+  username     String?
   role         String        @default("user")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  reservations Reservation[]
-  referrals    Referral[]    @relation("Referrer")
-  referee      Referral[]    @relation("Referee")
   bonuses      Bonus[]
   comments     Comment[]
+  referee      Referral[]    @relation("Referee")
+  referrals    Referral[]    @relation("Referrer")
+  reservations Reservation[]
   sources      UserSource[]
 }
 
 model Reservation {
   id             String               @id @default(cuid())
   userId         String
-  user           User                 @relation(fields: [userId], references: [id])
   address        String
   serviceName    String
   contactInfo    String
@@ -44,7 +38,8 @@ model Reservation {
   endTime        DateTime
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
-  services       ServiceReservation[]
+  user           User                 @relation(fields: [userId], references: [id])
+  services       ServiceReservation[] @relation("ReservationServices")
 }
 
 model Service {
@@ -73,42 +68,41 @@ model PromoCode {
 model Referral {
   id          String   @id @default(cuid())
   referrerId  String
-  referrer    User     @relation("Referrer", fields: [referrerId], references: [id])
   refereeId   String
-  referee     User     @relation("Referee", fields: [refereeId], references: [id])
   level       Int      @default(1)
   bonusAmount Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  referee     User     @relation("Referee", fields: [refereeId], references: [id])
+  referrer    User     @relation("Referrer", fields: [referrerId], references: [id])
 }
 
 model Bonus {
   id        String    @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id])
   amount    Float
   type      String
   source    String?
   expiresAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
 }
 
 model Comment {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   service   String
   text      String
   rating    Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model UserSource {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   source    String
   campaign  String?
   medium    String?
@@ -116,24 +110,25 @@ model UserSource {
   content   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model ServiceReservation {
   id            String      @id @default(cuid())
   reservationId String
-  reservation   Reservation @relation(fields: [reservationId], references: [id])
   serviceId     String
-  service       Service     @relation(fields: [serviceId], references: [id])
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  reservation   Reservation @relation("ReservationServices", fields: [reservationId], references: [id], onDelete: Cascade)
+  service       Service     @relation(fields: [serviceId], references: [id])
 }
 
 model Calendar {
   id        String            @id @default(cuid())
-  days      DayAvailability[]
   timeGap   Int
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+  days      DayAvailability[]
 }
 
 model DayAvailability {
@@ -142,8 +137,7 @@ model DayAvailability {
   day            DayOfWeek
   startTime      DateTime
   endTime        DateTime
-
-  availability Calendar @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+  availability   Calendar  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 }
 
 enum DayOfWeek {

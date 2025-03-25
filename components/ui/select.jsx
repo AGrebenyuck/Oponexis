@@ -111,7 +111,7 @@ const Select = forwardRef(
 				</button>
 
 				{open && (
-					<div className='absolute w-full mt-1 bg-primary-blue border lg:border-2 border-white rounded-xl lg:rounded-3xl shadow-lg p-3 flex flex-col items-start md:items-center gap-1 z-10 max-h-[300px] overflow-y-scroll'>
+					<div className='absolute bottom-full w-full mb-1 bg-primary-blue border lg:border-2 border-white rounded-xl lg:rounded-3xl shadow-lg p-3 flex flex-col items-start md:items-center gap-1 z-10 max-h-[300px] overflow-y-scroll'>
 						{Children.map(children, child =>
 							cloneElement(child, {
 								onSelect: handleSelect,

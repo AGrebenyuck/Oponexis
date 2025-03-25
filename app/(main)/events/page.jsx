@@ -1,12 +1,15 @@
 'use client'
 
 import {
+	deleteReservation,
 	getFutureReservations,
 	getPastReservations,
 	updateReservation,
 } from '@/actions/booking'
 import AutoComplete from '@/components/ui/autoComplete'
+import Divider from '@/components/ui/divider'
 import Drawer from '@/components/ui/drawer'
+import message from '@/components/ui/message'
 import Segmented from '@/components/ui/segmented'
 import { useEffect, useState } from 'react'
 import EditReservationForm from './_components/editReservationForm'
@@ -22,12 +25,15 @@ const EventsPage = () => {
 
 	const handleSave = async updatedData => {
 		try {
-			console.log(updatedData)
-
 			const result = await updateReservation(updatedData)
 
 			if (result.success) {
-				console.log(result.updatedReservation)
+				result.updatedReservation.startTime = new Date(
+					result.updatedReservation.startTime
+				)
+				result.updatedReservation.endTime = new Date(
+					result.updatedReservation.endTime
+				)
 
 				// Обновляем локальное состояние без перезагрузки страницы
 				setReservations(prev =>
@@ -49,6 +55,24 @@ const EventsPage = () => {
 			}
 		} catch (error) {
 			console.error('Ошибка при обновлении бронирования:', error)
+		}
+	}
+
+	const handleDelete = async id => {
+		try {
+			const result = await deleteReservation(id)
+
+			if (result.success) {
+				// Aktualizujemy lokalny stan, usuwając rezerwację
+				setReservations(prev => prev.filter(r => r.id !== id))
+				setFilteredReservations(prev => prev.filter(r => r.id !== id))
+				message.success('Rezerwacja zrezygnowana')
+			} else {
+				message.error(result.error)
+				console.error('Błąd podczas usuwania:', result.error)
+			}
+		} catch (error) {
+			console.error('Błąd podczas usuwania rezerwacji:', error)
 		}
 	}
 
@@ -96,6 +120,8 @@ const EventsPage = () => {
 				/>
 			</div>
 
+			<Divider />
+
 			{/* Список резерваций */}
 			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
 				{filteredReservations ? (
@@ -109,6 +135,7 @@ const EventsPage = () => {
 								setIsEditing(true)
 							}}
 							onDelete={() => handleDelete(reservation.id)}
+							past={viewMode === 'past' ? true : false}
 						/>
 					))
 				) : (

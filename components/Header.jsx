@@ -132,6 +132,7 @@ const Header = () => {
 							<Button
 								type='alternative'
 								className='md:px-6 md:py-1 lg:px-8 lg:py-2 3xl:px-18 3xl:py-5'
+								suppressHydrationWarning
 							>
 								Login
 							</Button>
@@ -142,10 +143,12 @@ const Header = () => {
 					</SignedIn>
 
 					{/* Бургер-меню */}
+
 					<button
 						type='button'
 						className='2xl:hidden z-50'
 						onClick={() => setMenuOpen(!menuOpen)}
+						suppressHydrationWarning
 					>
 						<span id='nav-icon4' className={`${menuOpen ? 'open' : ''}`}>
 							<span></span>

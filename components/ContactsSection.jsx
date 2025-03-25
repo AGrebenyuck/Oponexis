@@ -53,12 +53,27 @@ const ContactsSection = () => {
 						<h4 className='title-2 font-semibold mb-2 md:mb-4'>
 							Godziny otwarcia:
 						</h4>
+
 						<p className='font-semibold'>
-							Pon–Pt: <span className='font-normal'>06:00–20:00 </span>
+							Pon–Pt: <span className='font-normal'>06:00–20:00</span>
 						</p>
 						<p className='font-semibold'>
 							Sob–Nd: <span className='font-normal'>10:00–20:00</span>
 						</p>
+
+						<p className='title-2 font-semibold my-2'>
+							Opłata poza godzinami pracy:
+						</p>
+						<ul className=''>
+							<li>
+								<span className=' font-semibold'>+30%</span> w dni robocze poza
+								godzinami 06:00–20:00
+							</li>
+							<li>
+								<span className='font-semibold'>+50%</span> w weekendy poza
+								godzinami 10:00–20:00
+							</li>
+						</ul>
 					</div>
 					<div className='order-2 2xl:order-3'>
 						<h4 className='title-2 font-semibold mb-2 md:mb-4'>

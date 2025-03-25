@@ -3,7 +3,6 @@ import {
 	getAvailableDaysForCalendar,
 } from '@/actions/availability'
 import useFetch from '@/hooks/useFetch'
-import { format } from 'date-fns'
 import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import { DayPicker, getDefaultClassNames } from 'react-day-picker'
@@ -14,19 +13,29 @@ import { CalendarArrowLeft, CalendarArrowRight } from '../Icons'
 import Button from '../ui/button'
 
 const SecondStep = () => {
-	const { setValue, getValues } = useFormContext()
+	const { setValue, getValues, watch } = useFormContext()
 
 	const [availableDays, setAvailableDays] = useState([])
 	const [selectedDate, setSelectedDate] = useState(null)
 	const [selectedTime, setSelectedTime] = useState([])
 	const serviceDuration = getValues('duration')
 
+	const date = watch('date')
+	const time = watch('time')
+
 	// Загружаем доступные дни
 	useEffect(() => {
+		document?.getElementById('secondStepForm')?.scrollIntoView({
+			behavior: 'smooth',
+			block: 'start',
+		})
 		async function fetchAvailableDays() {
 			const availableDates = await getAvailableDaysForCalendar(new Date())
 			setAvailableDays(availableDates)
 		}
+
+		setSelectedDate(new Date(date))
+
 		fetchAvailableDays()
 	}, [])
 
@@ -38,11 +47,15 @@ const SecondStep = () => {
 
 	useEffect(() => {
 		if (selectedDate) {
-			setValue('date', format(selectedDate, 'yyyy-MM-dd'))
+			setValue('date', DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd'))
 			setSelectedTime('')
 
 			fnGenerateAvailableSlots(selectedDate, serviceDuration)
 		}
+		document?.getElementById('timeForm')?.scrollIntoView({
+			behavior: 'smooth',
+			block: 'center',
+		})
 	}, [selectedDate])
 
 	useEffect(() => {
@@ -50,10 +63,13 @@ const SecondStep = () => {
 			setValue('time', selectedTime[0])
 			setValue('timeEnd', selectedTime[1])
 		}
-	})
+	}, [selectedTime])
 
 	return (
-		<div className='flex flex-col md:flex-row gap-9 lg:gap-12'>
+		<div
+			id='secondStepForm'
+			className='flex flex-col md:flex-row gap-9 lg:gap-12'
+		>
 			<DayPicker
 				mode='single'
 				weekStartsOn={1}
@@ -92,39 +108,44 @@ const SecondStep = () => {
 				selected={selectedDate}
 				onSelect={setSelectedDate}
 			/>
-			{loading ? (
-				<p>Loading...</p>
-			) : selectedDate && availableSlots !== undefined ? (
-				<div className='mt-4'>
-					<h3 className='mb-2'>
-						Wolny czas na{' '}
-						{DateTime.fromJSDate(selectedDate).setLocale('pl').toFormat('DDD')}:
-					</h3>
-					<ul className='flex flex-wrap gap-2 max-h-[540px] overflow-y-auto scrollbar'>
-						{availableSlots?.length > 0 ? (
-							availableSlots.map((slot, index) => (
-								<li key={index}>
-									<Button
-										onClick={() => {
-											setSelectedTime([slot.start, slot.end])
-										}}
-										type='alternative'
-										className={` ${
-											selectedTime[0] === slot.start
-												? '!bg-accent-blue text-white hover:bg-accent-blue'
-												: ''
-										}`}
-									>
-										{slot.start}
-									</Button>
-								</li>
-							))
-						) : (
-							<p className='text-red-500'>Brak dostępnych terminów</p>
-						)}
-					</ul>
-				</div>
-			) : null}
+			<div id='timeForm'>
+				{loading ? (
+					<p>Loading...</p>
+				) : selectedDate && availableSlots !== undefined ? (
+					<div className='mt-4'>
+						<h3 className='mb-2'>
+							Wolny czas na{' '}
+							{DateTime.fromJSDate(selectedDate)
+								.setLocale('pl')
+								.toFormat('DDD')}
+							:
+						</h3>
+						<ul className='flex flex-wrap gap-2 max-h-[270px] md:max-h-[540px] overflow-y-auto scrollbar'>
+							{availableSlots?.length > 0 ? (
+								availableSlots.map((slot, index) => (
+									<li key={index}>
+										<Button
+											onClick={() => {
+												setSelectedTime([slot.start, slot.end])
+											}}
+											type='alternative'
+											className={` ${
+												selectedTime[0] === slot.start
+													? '!bg-accent-blue text-white hover:bg-accent-blue'
+													: ''
+											}`}
+										>
+											{slot.start}
+										</Button>
+									</li>
+								))
+							) : (
+								<p className='text-red-500'>Brak dostępnych terminów</p>
+							)}
+						</ul>
+					</div>
+				) : null}
+			</div>
 		</div>
 	)
 }

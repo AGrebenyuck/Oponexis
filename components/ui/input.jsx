@@ -1,6 +1,7 @@
-import { forwardRef, useState } from 'react'
+import { forwardRef } from 'react'
 import { useFormContext } from 'react-hook-form'
-import Tooltip from './tooltip'
+import { ErrorIcon } from '../Icons'
+import Popover from './popover'
 
 const Input = forwardRef(
 	(
@@ -13,22 +14,37 @@ const Input = forwardRef(
 			type = 'text',
 			className = '',
 			onChange,
-			value: propValue,
+			autoComplete,
 			...rest
 		},
 		ref
 	) => {
-		const [inputValue, setInputValue] = useState(propValue || '')
 		const form = useFormContext()
-		const errors = form?.formState.errors
+		const isFormContextAvailable = !!form // ✅ Проверяем, есть ли контекст
+
+		// ✅ Если форма доступна, используем её методы
+		const { register, watch, formState, setValue } = isFormContextAvailable
+			? form
+			: {
+					register: () => {},
+					watch: () => {},
+					formState: { errors: {} },
+					setValue: () => {},
+			  }
+
+		const errors = formState.errors
+		const value = watch(name) || ''
 
 		const handleChange = e => {
-			let value = e.target.value
-			setInputValue(value)
-			onChange && onChange({ target: { name, value } })
+			if (!e || !e.target) return
+			let newValue = e.target.value || ''
+			if (isFormContextAvailable) {
+				setValue(name, newValue) // ✅ Если есть форма, обновляем значение в react-hook-form
+			}
+			onChange?.(e) // ✅ Вызываем `onChange`, если он передан
 		}
 
-		const hasError = errors?.[name] || null // Проверяем ошибку
+		const hasError = errors?.[name] || null
 
 		return (
 			<div className='relative w-full'>
@@ -41,25 +57,33 @@ const Input = forwardRef(
 						disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''
 					} ${className}`}
 				>
-					{/* Префикс с иконкой ошибки */}
 					{prefix && <span className='ml-2 text-gray-500'>{prefix}</span>}
 
 					<input
+						{...(isFormContextAvailable ? register(name) : {})} // ✅ Регистрируем только если есть форма
 						ref={ref}
-						name={name}
 						type={type}
 						className='flex-1 outline-none bg-transparent w-full'
-						placeholder={inputValue ? '' : placeholder}
+						placeholder={value ? '' : placeholder}
 						disabled={disabled}
-						value={inputValue}
+						value={value}
 						onChange={handleChange}
+						autoComplete={autoComplete}
 						{...rest}
 					/>
 
 					{hasError ? (
-						<Tooltip text={hasError.message} position='top'>
-							<span className='ml-2 text-red-500 p-2'>X</span>
-						</Tooltip>
+						<Popover content={hasError.message}>
+							<button
+								type='button'
+								onMouseDown={e => {
+									e.preventDefault() // 💡 Блокируем фокусировку
+									e.stopPropagation() // 💡 На всякий случай
+								}}
+							>
+								<ErrorIcon className='w-5 h-5' />
+							</button>
+						</Popover>
 					) : (
 						suffix && <span className='ml-2 text-gray-500'>{suffix}</span>
 					)}

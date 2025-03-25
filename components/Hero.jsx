@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import HeroSlider from './HeroSlider'
 import Button from './ui/button'
 
@@ -16,38 +16,54 @@ const handleClick = (e, targetId) => {
 }
 
 const Hero = () => {
-	const [bgImage, setBgImage] = useState('/background-header.jpg')
+	// const [bgImage, setBgImage] = useState('/background-header.jpg')
 	const [isMobile, setIsMobile] = useState(true)
 
-	useEffect(() => {
-		const handleResize = () => {
-			if (window.innerWidth <= 768) {
-				setBgImage('/bg-mobile.jpg')
-			} else {
-				setBgImage('/background-header.jpg')
-			}
-			if (window.innerWidth <= 1439) {
-				setIsMobile(true)
-			} else {
-				setIsMobile(false)
-			}
-		}
-		handleResize()
-	}, [])
+	// useEffect(() => {
+	// 	const handleResize = () => {
+	// 		if (window.innerWidth <= 768) {
+	// 			setBgImage('/bg-mobile.jpg')
+	// 		} else {
+	// 			setBgImage('/background-header.jpg')
+	// 		}
+	// 		if (window.innerWidth <= 1439) {
+	// 			setIsMobile(true)
+	// 		} else {
+	// 			setIsMobile(false)
+	// 		}
+	// 	}
+	// 	handleResize()
+	// }, [])
 	return (
 		<section className='relative max-h-[768px] h-full w-full'>
-			<div className='absolute inset-0 z-0'>
+			<picture className='absolute inset-0 z-0'>
+				<source media='(max-width: 768px)' srcSet='/bg-mobile.jpg' />
+				<source media='(min-width: 769px)' srcSet='/background-header.jpg' />
 				<Image
-					src={bgImage}
+					src={'/bg-mobile.jpg'}
 					alt='Background'
 					fill
 					style={{
 						objectFit: 'cover',
 						objectPosition: 'center',
 					}}
-					quality={100}
+					quality={80}
+					priority={true}
 				/>
-			</div>
+			</picture>
+			{/* <div className='absolute inset-0 z-0'>
+				<Image
+					src={'/background-header.jpg'}
+					alt='Background'
+					fill
+					style={{
+						objectFit: 'cover',
+						objectPosition: 'center',
+					}}
+					quality={80}
+					priority={true}
+				/>
+			</div> */}
 			<div className='px-4 pt-16 pb-10 sm:px-10 md:px-16 lg:py-28 2xl:py-48 md:pb-10 z-10 flex justify-between'>
 				<div className='relative max-w-[910px]'>
 					<h1 className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 sm:mb-8 md:mb-11'>
@@ -58,7 +74,10 @@ const Hero = () => {
 						w korkach – Nasz mobilny serwis przyjedzie do ciebie .
 					</p>
 					<div className='flex flex-col gap-2 sm:flex-row sm:gap-5'>
-						<Link href={'#services'} onClick={e => handleClick(e, 'services')}>
+						<Link
+							href={'#services'}
+							onClick={e => handleClick(e, 'reservation')}
+						>
 							<Button className='w-full'>Rezerwacja</Button>
 						</Link>
 						<Link href='tel:+48776888488'>

@@ -3,16 +3,52 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@clerk/nextjs/server'
 import { DateTime } from 'luxon'
+import { createUser } from './user'
+import {
+	createZadarmaDeal,
+	createZadarmaTask,
+	updateZadarmaCustomer,
+} from './zadarma'
 
 const TIMEZONE = 'Europe/Warsaw'
 
 export async function createReservation(bookingData) {
 	try {
 		const user = await auth()
+		let idUser = null
+		if (user.userId !== null) {
+			idUser = await db.user.findUnique({
+				where: { clerkUserId: user.userId },
+			})
+			if (idUser.phone === null) {
+				await db.user.update({
+					where: { clerkUserId: user.userId },
+					data: {
+						phone: bookingData.phone,
+					},
+				})
 
-		const idUser = await db.user.findUnique({
-			where: { clerkUserId: user.userId },
-		})
+				updateZadarmaCustomer({
+					id: idUser.zadarmaId,
+					phone: bookingData.phone,
+					name: idUser.name,
+				})
+			}
+		} else {
+			idUser = await createUser(bookingData)
+		}
+
+		const dealData = {
+			title: bookingData.service,
+			budget: bookingData.price,
+			customer_id: idUser.zadarmaId,
+		}
+
+		const deal = await createZadarmaDeal(dealData)
+
+		if (deal.status === 'success') {
+			createZadarmaTask(bookingData, idUser.zadarmaId, deal?.data?.id)
+		}
 
 		const booking = await db.reservation.create({
 			data: {
@@ -218,6 +254,27 @@ export const updateReservation = async updatedData => {
 		return await response.json()
 	} catch (error) {
 		console.error('Ошибка при обновлении:', error)
+		return { success: false, error: error.message }
+	}
+}
+
+export const deleteReservation = async id => {
+	try {
+		const response = await fetch(`${process.env.URL}/api/delete-reservation`, {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({ id }),
+		})
+
+		if (!response.ok) {
+			throw new Error('Błąd podczas usuwania rezerwacji')
+		}
+
+		return await response.json()
+	} catch (error) {
+		console.error('Błąd podczas usuwania:', error)
 		return { success: false, error: error.message }
 	}
 }

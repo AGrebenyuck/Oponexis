@@ -28,6 +28,8 @@ const EditReservationForm = ({ initialData, onSave }) => {
 	const [durationService, setDurationService] = useState(0)
 	const isFirstRender = useRef(true) // ✅ Отслеживаем первый рендер
 
+	const isISODate = date => typeof date === 'string' && !isNaN(Date.parse(date))
+
 	const {
 		control,
 		handleSubmit,
@@ -57,10 +59,14 @@ const EditReservationForm = ({ initialData, onSave }) => {
 			setServices(serviceData)
 
 			// Устанавливаем начальные данные (дата и время)
-			const startTime = DateTime.fromJSDate(initialData.startTime).toFormat(
-				'HH:mm'
-			)
-			const endTime = DateTime.fromJSDate(initialData.endTime).toFormat('HH:mm')
+			const startTime = isISODate(initialData.startTime)
+				? DateTime.fromISO(initialData.startTime).toFormat('HH:mm')
+				: DateTime.fromJSDate(initialData.startTime).toFormat('HH:mm')
+			const endTime = isISODate(initialData.endTime)
+				? DateTime.fromISO(initialData.endTime).toFormat('HH:mm')
+				: DateTime.fromJSDate(initialData.endTime).toFormat('HH:mm')
+
+			console.log(startTime + ' ' + endTime)
 
 			const serviceNames = serviceData.prices
 				?.filter(service =>
@@ -134,6 +140,7 @@ const EditReservationForm = ({ initialData, onSave }) => {
 	const onSubmit = formData => {
 		formData.serviceName =
 			formData.serviceName.length > 1 ? 'Zestaw' : formData.serviceName[0]
+
 		onSave({ ...initialData, ...formData })
 	}
 

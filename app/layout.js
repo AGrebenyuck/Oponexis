@@ -33,7 +33,7 @@ export const metadata = {
 		siteName: 'Oponexis',
 		images: [
 			{
-				url: 'https://www.oponexis.pl/oponexis-og.jpg',
+				url: 'https://www.oponexis.pl/oponexis-og.JPG',
 				width: 1200,
 				height: 630,
 				alt: 'Wyjazdowy serwis opon w Opolu',
@@ -49,7 +49,7 @@ export const metadata = {
 		title: 'Oponexis - Wyjazdowy serwis opon i samochodów w Opolu',
 		description:
 			'Oferujemy profesjonalny wyjazdowy serwis opon w Opolu, wymianę oleju, serwis klimatyzacji i inne usługi mobilne.',
-		image: 'https://www.oponexis.pl/oponexis-og.jpg',
+		image: 'https://www.oponexis.pl/oponexis-og.JPG',
 		site: '@oponexis', // Optional Twitter handle
 	},
 
@@ -103,7 +103,7 @@ export const metadata = {
 		},
 		description:
 			'Oponexis to profesjonalny wyjazdowy serwis opon w Opolu. Oferujemy wymianę opon, wyważanie, serwis klimatyzacji i inne usługi mobilne.',
-		image: 'https://www.oponexis.pl/oponexis-og.jpg',
+		image: 'https://www.oponexis.pl/oponexis-og.JPG',
 	},
 
 	// Social Media / Twitter Card related metadata

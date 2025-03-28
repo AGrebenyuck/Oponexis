@@ -44,8 +44,13 @@ const OffersSection = () => {
 		},
 	]
 	return (
-		<div className='container-padding pt-8 flex flex-col gap-5'>
-			<h2 className='title order-1'>CO OFERUJEMY?</h2>
+		<section
+			aria-labelledby='what-we-offer'
+			className='container-padding pt-8 flex flex-col gap-5'
+		>
+			<h2 id='what-we-offer' className='title order-1'>
+				CO OFERUJEMY?
+			</h2>
 			<div className='flex flex-col 2xl:flex-row gap-5 mb-10 lg:gap-12 lg:mb-[64px] order-3 lg:order-2'>
 				<div className='rounded-3xl 2xl:max-w-[863px] w-full'>
 					<Image
@@ -82,7 +87,7 @@ const OffersSection = () => {
 					})}
 				</ul>
 			</div>
-		</div>
+		</section>
 	)
 }
 

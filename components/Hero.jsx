@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import HeroSlider from './HeroSlider'
 import Button from './ui/button'
 
@@ -15,33 +15,23 @@ const handleClick = (e, targetId) => {
 	})
 }
 
-const Hero = () => {
-	// const [bgImage, setBgImage] = useState('/background-header.jpg')
+const Hero = memo(() => {
 	const [isMobile, setIsMobile] = useState(true)
 
-	// useEffect(() => {
-	// 	const handleResize = () => {
-	// 		if (window.innerWidth <= 768) {
-	// 			setBgImage('/bg-mobile.jpg')
-	// 		} else {
-	// 			setBgImage('/background-header.jpg')
-	// 		}
-	// 		if (window.innerWidth <= 1439) {
-	// 			setIsMobile(true)
-	// 		} else {
-	// 			setIsMobile(false)
-	// 		}
-	// 	}
-	// 	handleResize()
-	// }, [])
 	return (
-		<section className='relative max-h-[768px] h-full w-full'>
+		<section
+			aria-labelledby='hero-section'
+			className='relative max-h-[768px] h-full w-full'
+		>
+			<h1 id='hero-section' className='sr-only'>
+				Hero Section - Zadbaj o swoje auto bez wychodzenia z domu
+			</h1>
 			<picture className='absolute inset-0 z-0'>
 				<source media='(max-width: 768px)' srcSet='/bg-mobile.jpg' />
 				<source media='(min-width: 769px)' srcSet='/background-header.jpg' />
 				<Image
 					src={'/bg-mobile.jpg'}
-					alt='Background'
+					alt='Mobilny serwis opon - Zadbaj o swoje auto'
 					fill
 					style={{
 						objectFit: 'cover',
@@ -51,19 +41,6 @@ const Hero = () => {
 					priority={true}
 				/>
 			</picture>
-			{/* <div className='absolute inset-0 z-0'>
-				<Image
-					src={'/background-header.jpg'}
-					alt='Background'
-					fill
-					style={{
-						objectFit: 'cover',
-						objectPosition: 'center',
-					}}
-					quality={80}
-					priority={true}
-				/>
-			</div> */}
 			<div className='px-4 pt-16 pb-10 sm:px-10 md:px-16 lg:py-28 2xl:py-48 md:pb-10 z-10 flex justify-between'>
 				<div className='relative max-w-[910px]'>
 					<h1 className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 sm:mb-8 md:mb-11'>
@@ -91,6 +68,6 @@ const Hero = () => {
 			</div>
 		</section>
 	)
-}
+})
 
 export default Hero

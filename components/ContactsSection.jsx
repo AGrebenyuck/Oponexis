@@ -7,18 +7,20 @@ import {
 	MarkIcon,
 	PhoneIcon,
 } from './Icons'
+import { memo } from 'react'
 
-const ContactsSection = () => {
+const ContactsSection = memo(() => {
 	return (
-		<div id='contacts' className='container-padding'>
+		<section id='contacts' className='container-padding'>
 			<div className='relative'>
 				<Link href='/'>
 					<Image
 						src='/logo.svg'
-						alt='logo'
+						alt='Oponexis - Wyjazdowy serwis opon'
 						width={321}
 						height={56}
 						className='w-[152px] md:w-[300px] lg:w-auto'
+						loading='lazy'
 					/>
 				</Link>
 				<div className='flex flex-col flex-wrap 2xl:flex-nowrap md:flex-row gap-5 md:gap-10 justify-between mt-6 md:mt-12'>
@@ -123,8 +125,8 @@ const ContactsSection = () => {
 			<p className='text-secondary-orange mt-9 2xl:mt-[108px]'>
 				2025 team Oponexis
 			</p>
-		</div>
+		</section>
 	)
-}
+})
 
 export default ContactsSection

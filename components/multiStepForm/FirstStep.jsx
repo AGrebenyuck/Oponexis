@@ -1,7 +1,7 @@
 import { getPromoCodes } from '@/actions/promocode'
 import { getServices } from '@/actions/service'
 import { calculateTotalDuration, calculateTotalPrice } from '@/lib/calculating'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { Controller, useFormContext } from 'react-hook-form'
 
 import { QuestionIcon, SuccessCircleIcon } from '../Icons'
@@ -12,7 +12,7 @@ import { Select, SelectOption } from '../ui/select'
 import TextArea from '../ui/textArea'
 import { usePriceContext } from './MultiStepLayout'
 
-const FirstStep = () => {
+const FirstStep = memo(() => {
 	const {
 		register,
 		control,
@@ -23,14 +23,10 @@ const FirstStep = () => {
 		trigger,
 	} = useFormContext()
 	const { setPrice } = usePriceContext()
-	const [services, SetServices] = useState([])
+	const [services, setServices] = useState([])
 	const [selectedServices, setSelectedServices] = useState([])
 	const [promoCode, setPromoCode] = useState('')
 	const [availablePromoCodes, setAvailablePromoCodes] = useState([])
-	const [totalPrice, setTotalPrice] = useState({
-		baseTotal: 0,
-		discountedTotal: 0,
-	})
 	const [isAdditionalService, setIsAdditionalService] = useState(false)
 
 	const selectedServiceValues = watch('serviceName')
@@ -42,53 +38,43 @@ const FirstStep = () => {
 		if (selectedServiceValues) {
 			setSelectedServices(selectedServiceValues)
 			setPromoCode(promoValues)
-		}
-	}, [selectedServiceValues]) // Запускаем эффект, когда `service` изменяется
-
-	useEffect(() => {
-		const loadServices = async () => {
-			const services = await getServices()
-			SetServices(services)
-		}
-		loadServices()
-	}, [])
-
-	useEffect(() => {
-		// Загружаем доступные промокоды при монтировании компонента
-		const loadPromoCodes = async () => {
-			const codes = await getPromoCodes()
-			setAvailablePromoCodes(codes)
-		}
-		loadPromoCodes()
-	}, [])
-
-	useEffect(() => {
-		availablePromoCodes
-		setTotalPrice(
-			calculateTotalPrice(
-				selectedServices,
-				services.prices,
-				promoCode,
-				availablePromoCodes.promocodes
+			setIsAdditionalService(
+				additionalService.some(item => new Set(selectedServices).has(item))
 			)
-		)
+		}
 		if (selectedServices.length > 0) {
-			// ✅ Обновляем duration только если есть услуги
 			setValue(
 				'duration',
 				calculateTotalDuration(selectedServices, services.prices)
 			)
 		}
-		if (selectedServices) {
-			setIsAdditionalService(
-				additionalService.some(item => new Set(selectedServices).has(item))
-			)
+	}, [selectedServices])
+
+	// Записываем значения в useState только по мере необходимости
+	useEffect(() => {
+		const loadServicesAndPromoCodes = async () => {
+			const [services, promoCodes] = await Promise.all([
+				getServices(),
+				getPromoCodes(),
+			])
+			setServices(services)
+			setAvailablePromoCodes(promoCodes)
 		}
+		loadServicesAndPromoCodes()
+	}, [])
+
+	const totalPriceMemo = useMemo(() => {
+		return calculateTotalPrice(
+			selectedServices,
+			services.prices,
+			promoCode,
+			availablePromoCodes.promocodes
+		)
 	}, [selectedServices, promoCode, availablePromoCodes])
 
 	useEffect(() => {
-		setPrice(totalPrice)
-	}, [totalPrice])
+		setPrice(totalPriceMemo)
+	}, [totalPriceMemo])
 
 	return (
 		<>
@@ -169,8 +155,7 @@ const FirstStep = () => {
 								<Checkbox
 									checked={field.value}
 									onChange={checked => {
-										// setValue(`agree`, checked)
-										// trigger('agree')
+										setValue(`additionalService`, checked)
 									}}
 									label={`Nie posiadam własnych części zamiennych
 									`}
@@ -197,7 +182,7 @@ const FirstStep = () => {
 						setPromoCode(val.target.value) // ✅ Обновляет `useState`
 					}}
 					suffix={
-						totalPrice.isDiscountApplied ? (
+						totalPriceMemo.isDiscountApplied ? (
 							<SuccessCircleIcon className='w-6 h-6' />
 						) : null
 					}
@@ -222,6 +207,6 @@ const FirstStep = () => {
 			{errors.agree && <p className='text-red-500'>{errors.agree.message}</p>}
 		</>
 	)
-}
+})
 
 export default FirstStep

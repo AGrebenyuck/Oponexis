@@ -6,7 +6,7 @@ import { reservationSchema } from '@/lib/validators'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import { DateTime } from 'luxon'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, memo, useContext, useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import Button from '../ui/button'
 import Modal from '../ui/modal'
@@ -35,6 +35,7 @@ const MultiStepLayout = () => {
 			agree: false,
 			serviceName: [],
 			service: [],
+			additionalService: false,
 		},
 	})
 
@@ -87,6 +88,7 @@ const MultiStepLayout = () => {
 			endTime: end.toISO(),
 			services: data.service,
 			serviceNames: data.serviceName,
+			isAdditionalService: data.additionalService,
 			price: price?.isDiscountApplied
 				? price?.discountedTotal.toFixed(2)
 				: price?.baseTotal,
@@ -177,13 +179,12 @@ const MultiStepLayout = () => {
 													'agree',
 												])
 
-												console.log(errors)
-
 												if (isValid) {
 													nextStep()
 												}
 											}}
 											className='w-full md:w-auto'
+											aria-label='Previous step'
 										>
 											Dalej
 										</Button>
@@ -200,7 +201,7 @@ const MultiStepLayout = () => {
 								exit='exit'
 								className='max-w-[350px] sm:max-w-[500px] md:max-w-[750px] lg:max-w-[1042px] mx-auto'
 							>
-								<SecondStep />
+								<SecondStep nextStep={nextStep} />
 								{errors.date && (
 									<p className='text-red-500'>{errors.date.message}</p>
 								)}
@@ -208,7 +209,9 @@ const MultiStepLayout = () => {
 									<p className='text-red-500 mt-2'>{errors.time.message}</p>
 								)}
 								<div className='mt-10 lg:mt-20 3xl:mt-24 flex justify-between'>
-									<Button onClick={prevStep}>Powrót</Button>
+									<Button onClick={prevStep} aria-label='Previous step'>
+										Powrót
+									</Button>
 									<Button
 										onClick={async () => {
 											const isValid = await trigger(['date', 'time'])
@@ -216,6 +219,7 @@ const MultiStepLayout = () => {
 												nextStep()
 											}
 										}}
+										aria-label='next step'
 									>
 										Dalej
 									</Button>
@@ -235,8 +239,13 @@ const MultiStepLayout = () => {
 									<ThirdStep />
 								</priceContext.Provider>
 								<div className='flex gap-10 mt-4 lg:mt-0'>
-									<Button onClick={prevStep}>Powrót</Button>
-									<Button onClick={methods.handleSubmit(onSubmit)}>
+									<Button onClick={prevStep} aria-label='Previous step'>
+										Powrót
+									</Button>
+									<Button
+										onClick={methods.handleSubmit(onSubmit)}
+										aria-label='Reservation button'
+									>
 										{loading ? 'Rezerwacja...' : 'Rezerwacja'}
 									</Button>
 								</div>

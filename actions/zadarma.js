@@ -121,6 +121,12 @@ export const createZadarmaDeal = async dealData => {
 // 🔹 Функция для создания задания в CRM Zadarma
 export const createZadarmaTask = async (reservation, customerId, dealId) => {
 	try {
+		const description = `Rezerwacja usługi: ${reservation.serviceNames.join(
+			', '
+		)}| Kontakt: ${reservation.contacts}| Adres: ${reservation.address}| ${
+			reservation.isAdditionalService ? 'Zadzwoń po dodatkowe usługi' : ''
+		}`
+
 		const response = await api({
 			http_method: 'POST',
 			api_method: '/v1/zcrm/events',
@@ -130,9 +136,7 @@ export const createZadarmaTask = async (reservation, customerId, dealId) => {
 					title: `${reservation.service} | dealId:${dealId}`,
 					start: reservation.startTime,
 					end: reservation.endTime,
-					description: `Rezerwacja usługi: ${reservation.serviceNames.join(
-						', '
-					)}\nKontakt: ${reservation.contacts}\nAdres: ${reservation.address}`,
+					description: description,
 					customers: [customerId],
 					allDay: false,
 					responsible_user: 250485,

@@ -5,11 +5,11 @@ import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import Button from './ui/button'
 import UserMenu from './userMenu'
 
-const Header = () => {
+const Header = memo(() => {
 	const [menuOpen, setMenuOpen] = useState(false)
 	const [role, setRole] = useState('user')
 	const [isLargeScreen, setIsLargeScreen] = useState(false)
@@ -43,7 +43,10 @@ const Header = () => {
 
 	return (
 		<header className='relative px-4 py-3 sm:px-10 md:px-16 sm:py-6'>
-			<nav className='flex items-center justify-between  '>
+			<nav
+				className='flex items-center justify-between'
+				aria-label='Podstawowa nawigacja'
+			>
 				<Link href={'/'}>
 					<Image
 						src={'/logo.svg'}
@@ -124,11 +127,19 @@ const Header = () => {
 				)}
 
 				<div className='flex items-center gap-3'>
-					<Link href={'/'} className='hidden 3xl:block'>
-						<Button>Zarezerwuj</Button>
-					</Link>
+					<Button
+						className='hidden 3xl:block'
+						onClick={e => handleClick(e, 'reservation')}
+					>
+						Zarezerwuj
+					</Button>
+
 					<SignedOut>
-						<SignInButton mode='modal'>
+						<SignInButton
+							mode='modal'
+							forceRedirectUrl='/'
+							signUpForceRedirectUrl='/'
+						>
 							<Button
 								type='alternative'
 								className='md:px-6 md:py-1 lg:px-8 lg:py-2 3xl:px-18 3xl:py-5'
@@ -149,6 +160,7 @@ const Header = () => {
 						className='2xl:hidden z-50'
 						onClick={() => setMenuOpen(!menuOpen)}
 						suppressHydrationWarning
+						aria-label='Nawigacja po stronie'
 					>
 						<span id='nav-icon4' className={`${menuOpen ? 'open' : ''}`}>
 							<span></span>
@@ -189,6 +201,6 @@ const Header = () => {
 			</nav>
 		</header>
 	)
-}
+})
 
 export default Header

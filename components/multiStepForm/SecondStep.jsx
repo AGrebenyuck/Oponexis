@@ -12,7 +12,7 @@ import { useFormContext } from 'react-hook-form'
 import { CalendarArrowLeft, CalendarArrowRight } from '../Icons'
 import Button from '../ui/button'
 
-const SecondStep = () => {
+const SecondStep = ({ nextStep }) => {
 	const { setValue, getValues, watch } = useFormContext()
 
 	const [availableDays, setAvailableDays] = useState([])
@@ -21,7 +21,7 @@ const SecondStep = () => {
 	const serviceDuration = getValues('duration')
 
 	const date = watch('date')
-	const time = watch('time')
+	const time = watch(['time', 'timeEnd'])
 
 	// Загружаем доступные дни
 	useEffect(() => {
@@ -32,9 +32,9 @@ const SecondStep = () => {
 		async function fetchAvailableDays() {
 			const availableDates = await getAvailableDaysForCalendar(new Date())
 			setAvailableDays(availableDates)
+			setSelectedDate(date ? new Date(date) : availableDates[0])
+			setSelectedTime(time)
 		}
-
-		setSelectedDate(new Date(date))
 
 		fetchAvailableDays()
 	}, [])
@@ -48,7 +48,11 @@ const SecondStep = () => {
 	useEffect(() => {
 		if (selectedDate) {
 			setValue('date', DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd'))
-			setSelectedTime('')
+			if (DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd') !== date) {
+				setValue('time', null)
+				setValue('timeEnd', null)
+				setSelectedTime('')
+			}
 
 			fnGenerateAvailableSlots(selectedDate, serviceDuration)
 		}
@@ -127,6 +131,7 @@ const SecondStep = () => {
 										<Button
 											onClick={() => {
 												setSelectedTime([slot.start, slot.end])
+												nextStep()
 											}}
 											type='alternative'
 											className={` ${

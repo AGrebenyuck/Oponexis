@@ -4,7 +4,7 @@ import { getServices } from '@/actions/service'
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import {
 	OilChangeIcon,
@@ -94,7 +94,7 @@ const handleClick = (e, targetId) => {
 	})
 }
 
-const TabsService = () => {
+const TabsService = memo(() => {
 	const [activeTab, setActiveTab] = useState(0)
 	const [prices, setPrices] = useState([])
 	useEffect(() => {
@@ -115,11 +115,12 @@ const TabsService = () => {
 	})
 
 	return (
-		<div className='flex flex-col gap-8 2xl:flex-row md:gap-5'>
+		<section className='flex flex-col gap-8 2xl:flex-row md:gap-5'>
 			{/* Табы */}
 			<div className='flex justify-between 2xl:flex-col lg:justify-normal gap-4'>
 				{tabs.map(({ key, icon, title }, index) => (
 					<button
+						aria-label={title}
 						key={key}
 						onClick={() => setActiveTab(index)}
 						className={`py-3 lg:p-3 2xl:p-6 lg:bg-white text-primary-blue lg:rounded-3xl lg:w-[18%] 2xl:w-auto after:bg-transparent after:transition-colors max-w-[435px] transition-all duration-300 ${
@@ -150,10 +151,12 @@ const TabsService = () => {
 					<div className='relative 2xl:max-w-[738px] w-full h-[172px] lg:h-auto lg:max-w-[600px] sm:h-[300px] rounded-3xl'>
 						<Image
 							src={tabs[activeTab].image}
-							alt={tabs[activeTab].title}
+							alt={`Icon for ${tabs[activeTab].title}`}
 							fill={true}
 							style={{ objectFit: 'cover' }}
 							className='rounded-3xl'
+							loading='lazy'
+							quality={75}
 						/>
 					</div>
 					<div className='flex flex-col justify-between'>
@@ -195,8 +198,8 @@ const TabsService = () => {
 					</div>
 				</motion.div>
 			</AnimatePresence>
-		</div>
+		</section>
 	)
-}
+})
 
 export default TabsService

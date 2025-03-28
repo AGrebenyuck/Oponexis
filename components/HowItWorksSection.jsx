@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import {
 	HowItWorkBgIcon1,
 	HowItWorkBgIcon2,
@@ -52,10 +53,16 @@ const steps = [
 	},
 ]
 
-const HowItWorksSection = () => {
+const HowItWorksSection = memo(() => {
 	return (
-		<div id='howItWorks' className='container-padding'>
-			<h2 className='title'>Jak to działa?</h2>
+		<section
+			aria-labelledby='how-it-works'
+			id='howItWorks'
+			className='container-padding'
+		>
+			<h2 id='how-it-works' className='title'>
+				Jak to działa?
+			</h2>
 			<div className='grid grid-cols-1 grid-rows-3 lg:grid-rows-1 lg:grid-cols-3 3xl:grid-cols-[minmax(250px,540px)_auto_minmax(250px,540px)] gap-4 2xl:gap-6'>
 				{/* Step 1 */}
 				<div className='md:order-1 order-1 h-[269px] lg:h-[400px] 2xl:h-full'>
@@ -93,9 +100,9 @@ const HowItWorksSection = () => {
 					/>
 				</div>
 			</div>
-		</div>
+		</section>
 	)
-}
+})
 
 function StepCard({ title, description, bgIcon, numberIcon }) {
 	return (

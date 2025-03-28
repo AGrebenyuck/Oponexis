@@ -1,7 +1,7 @@
 'use client'
 
+import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { SelectArrowDown, SelectArrowUp } from '../Icons'
 
 const Accordion = ({ items }) => {
@@ -12,22 +12,24 @@ const Accordion = ({ items }) => {
 	}
 
 	return (
-		<div className='flex flex-col gap-7 md:gap-10 lg:gap-14'>
+		<dl className='flex flex-col gap-7 md:gap-10 lg:gap-14'>
 			{items.map((item, index) => (
 				<div key={index}>
-					<button
-						className='w-full text-left font-semibold flex justify-between items-center gap-3'
-						onClick={() => toggle(index)}
-					>
-						{item.title}
-						<span>
-							{openIndex === index ? (
-								<SelectArrowUp className='w-5 h-3 stroke-white lg:w-8 lg:h-5' />
-							) : (
-								<SelectArrowDown className='w-5 h-3 lg:w-8 lg:h-5 stroke-white opacity-100' />
-							)}
-						</span>
-					</button>
+					<dt>
+						<button
+							className='w-full text-left font-semibold flex justify-between items-center gap-3'
+							onClick={() => toggle(index)}
+						>
+							{item.title}
+							<span>
+								{openIndex === index ? (
+									<SelectArrowUp className='w-5 h-3 stroke-white lg:w-8 lg:h-5' />
+								) : (
+									<SelectArrowDown className='w-5 h-3 lg:w-8 lg:h-5 stroke-white opacity-100' />
+								)}
+							</span>
+						</button>
+					</dt>
 
 					<AnimatePresence>
 						{openIndex === index && (
@@ -38,13 +40,13 @@ const Accordion = ({ items }) => {
 								transition={{ duration: 0.3, ease: 'easeInOut' }}
 								className='overflow-hidden'
 							>
-								<div className='p-3'>{item.content}</div>
+								<dd className='p-3'>{item.content}</dd>
 							</motion.div>
 						)}
 					</AnimatePresence>
 				</div>
 			))}
-		</div>
+		</dl>
 	)
 }
 

@@ -1,13 +1,19 @@
-import React from 'react'
+import { memo } from 'react'
 import TabsService from './TabsService'
 
-const ServiceSection = () => {
+const ServiceSection = memo(() => {
 	return (
-		<div id='services' className='container-padding'>
-			<h2 className='title'>Nasze usługi:</h2>
+		<section
+			id='services'
+			className='container-padding'
+			aria-labelledby='services-section'
+		>
+			<h2 id='services-section' className='title'>
+				Nasze usługi:
+			</h2>
 			<TabsService />
-		</div>
+		</section>
 	)
-}
+})
 
 export default ServiceSection

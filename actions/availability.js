@@ -13,6 +13,9 @@ export async function getAvailability() {
 	// }
 
 	const calendar = await db.calendar.findFirst()
+	if (!calendar) {
+		return null
+	}
 	const availability = await db.calendar.findUnique({
 		where: { id: calendar.id },
 		include: { days: true },

@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useState } from 'react'
 import { CheckBoxCheckedIcon } from '../Icons'
 
 const Checkbox = forwardRef(
-	({ checked, onChange, disabled = false, label, className }, ref) => {
+	({ checked, onChange, disabled = false, label, className = '' }, ref) => {
 		const [isChecked, setIsChecked] = useState(checked ?? false)
 
 		useEffect(() => {
@@ -11,30 +11,41 @@ const Checkbox = forwardRef(
 			}
 		}, [checked])
 
-		const handleChange = () => {
+		const toggle = () => {
 			if (disabled) return
-			const newChecked = !isChecked
-			setIsChecked(newChecked)
-			onChange && onChange(newChecked)
+			const newValue = !isChecked
+			setIsChecked(newValue)
+			onChange?.(newValue)
+		}
+
+		const handleKeyDown = e => {
+			if (e.key === ' ' || e.key === 'Enter') {
+				e.preventDefault()
+				toggle()
+			}
 		}
 
 		return (
-			<label className={`${className} flex items-center cursor-pointer gap-3`}>
-				<input
-					type='checkbox'
-					checked={isChecked}
-					onChange={handleChange}
-					disabled={disabled}
-					className='hidden'
-					ref={ref}
-				/>
-				<div className='w-7 h-7 md:w-12 md:h-12 flex items-center shrink-0 justify-center border-2 rounded-full border-secondary-orange'>
+			<div
+				ref={ref}
+				role='checkbox'
+				aria-checked={isChecked}
+				tabIndex={disabled ? -1 : 0}
+				onClick={toggle}
+				onKeyDown={handleKeyDown}
+				className={`flex items-center gap-3 cursor-pointer  rounded ${
+					disabled ? 'opacity-50 cursor-not-allowed' : ''
+				} ${className}`}
+			>
+				<div
+					className={`w-7 h-7 md:w-12 md:h-12 flex items-center shrink-0 justify-center border-2 focus:outline-none focus:ring-2 focus:ring-white rounded-full border-secondary-orange`}
+				>
 					{isChecked && (
-						<CheckBoxCheckedIcon className='block w-[16px] h-[11px] md:w-[29px] md:h-[21px]' />
+						<CheckBoxCheckedIcon className='w-[16px] h-[11px] md:w-[29px] md:h-[21px]' />
 					)}
 				</div>
 				{label && <span className='text-white font-semibold'>{label}</span>}
-			</label>
+			</div>
 		)
 	}
 )

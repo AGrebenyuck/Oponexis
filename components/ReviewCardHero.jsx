@@ -20,7 +20,7 @@ const ReviewCardHero = ({ review, className }) => {
 				<p className='mr-auto'>{review.name}</p>
 				<p className='flex gap-3 items-center'>
 					{review.rate}
-					<StarIcon />
+					<StarIcon className='fill-secondary-orange' />
 				</p>
 			</div>
 			<div>

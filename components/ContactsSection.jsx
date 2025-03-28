@@ -7,18 +7,20 @@ import {
 	MarkIcon,
 	PhoneIcon,
 } from './Icons'
+import { memo } from 'react'
 
-const ContactsSection = () => {
+const ContactsSection = memo(() => {
 	return (
-		<div id='contacts' className='container-padding'>
+		<section id='contacts' className='container-padding'>
 			<div className='relative'>
 				<Link href='/'>
 					<Image
 						src='/logo.svg'
-						alt='logo'
+						alt='Oponexis - Wyjazdowy serwis opon'
 						width={321}
 						height={56}
 						className='w-[152px] md:w-[300px] lg:w-auto'
+						loading='lazy'
 					/>
 				</Link>
 				<div className='flex flex-col flex-wrap 2xl:flex-nowrap md:flex-row gap-5 md:gap-10 justify-between mt-6 md:mt-12'>
@@ -53,12 +55,27 @@ const ContactsSection = () => {
 						<h4 className='title-2 font-semibold mb-2 md:mb-4'>
 							Godziny otwarcia:
 						</h4>
+
 						<p className='font-semibold'>
-							Pon–Pt: <span className='font-normal'>06:00–20:00 </span>
+							Pon–Pt: <span className='font-normal'>06:00–20:00</span>
 						</p>
 						<p className='font-semibold'>
 							Sob–Nd: <span className='font-normal'>10:00–20:00</span>
 						</p>
+
+						<p className='title-2 font-semibold my-2'>
+							Opłata poza godzinami pracy:
+						</p>
+						<ul className=''>
+							<li>
+								<span className=' font-semibold'>+30%</span> w dni robocze poza
+								godzinami 06:00–20:00
+							</li>
+							<li>
+								<span className='font-semibold'>+50%</span> w weekendy poza
+								godzinami 10:00–20:00
+							</li>
+						</ul>
 					</div>
 					<div className='order-2 2xl:order-3'>
 						<h4 className='title-2 font-semibold mb-2 md:mb-4'>
@@ -108,8 +125,8 @@ const ContactsSection = () => {
 			<p className='text-secondary-orange mt-9 2xl:mt-[108px]'>
 				2025 team Oponexis
 			</p>
-		</div>
+		</section>
 	)
-}
+})
 
 export default ContactsSection

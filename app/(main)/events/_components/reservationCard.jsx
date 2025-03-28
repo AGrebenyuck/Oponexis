@@ -1,6 +1,14 @@
+import Popover from '@/components/ui/popover'
+import Rate from '@/components/ui/rate'
+import TextArea from '@/components/ui/textArea'
+import { motion } from 'framer-motion'
 import { DateTime } from 'luxon'
+import { useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 
 const ReservationCard = ({
+	id,
+	userId,
 	serviceName,
 	startTime: reservationDateStart,
 	endTime: reservationDateEnd,
@@ -9,16 +17,38 @@ const ReservationCard = ({
 	promoCode,
 	comment,
 	status = 'pending',
-	showActions = true, // 🔹 Теперь кнопки могут быть скрыты
+	past = false, // 🟢 Указывает, что резервация прошлая
 	onEdit,
 	onDelete,
 }) => {
+	const [showForm, setShowForm] = useState(false)
+	const { control, handleSubmit, setValue, reset } = useForm({
+		defaultValues: {
+			rating: 5,
+			text: '',
+		},
+	})
+
+	const handleSaveComment = data => {
+		const commentData = {
+			userId,
+			serviceName,
+			rating: data.rating,
+			text: data.text,
+		}
+
+		console.log('📩 Отправка комментария:', commentData)
+		// 🔹 Тут можно отправить commentData на сервер через fetch()
+
+		reset()
+		setShowForm(false)
+	}
+
 	const isISODate = date => typeof date === 'string' && !isNaN(Date.parse(date))
 	const isJSDate = date => date instanceof Date && !isNaN(date.getTime())
 
 	const TIMEZONE = 'Europe/Warsaw'
 
-	// Проверяем reservationDateStart
 	const startDate = isISODate(reservationDateStart)
 		? DateTime.fromISO(reservationDateStart, { zone: TIMEZONE })
 		: DateTime.fromJSDate(reservationDateStart, { zone: TIMEZONE })
@@ -45,37 +75,37 @@ const ReservationCard = ({
 					}`}
 				>
 					{status === 'confirmed'
-						? 'Подтверждено'
+						? 'Potwierdzone'
 						: status === 'canceled'
-						? 'Отменено'
-						: 'Ожидает'}
+						? 'Anulowane'
+						: 'Oczekujące'}
 				</span>
 			</div>
 
 			<div className='mt-3 flex flex-col gap-2'>
 				<div>
 					<p className='text-sm text-gray-500 dark:text-gray-400'>
-						Дата резервации:
+						Data rezerwacji:
 					</p>
 					<p className='text-md font-medium'>{`${startTime}-${endTime}, ${day}`}</p>
 				</div>
 
 				<div>
 					<p className='text-sm text-gray-500 dark:text-gray-400'>
-						Контактные данные:
+						Dane kontaktowe:
 					</p>
 					<p className='text-md font-medium'>{contact}</p>
 				</div>
 
 				<div>
-					<p className='text-sm text-gray-500 dark:text-gray-400'>Адрес:</p>
+					<p className='text-sm text-gray-500 dark:text-gray-400'>Adres:</p>
 					<p className='text-md font-medium'>{address}</p>
 				</div>
 
 				{promoCode && (
 					<div>
 						<p className='text-sm text-gray-500 dark:text-gray-400'>
-							Промокод:
+							Kod promocyjny:
 						</p>
 						<p className='text-md font-medium'>{promoCode}</p>
 					</div>
@@ -84,30 +114,105 @@ const ReservationCard = ({
 				{comment && (
 					<div>
 						<p className='text-sm text-gray-500 dark:text-gray-400'>
-							Комментарий:
+							Komentarz:
 						</p>
 						<p className='text-md font-medium'>{comment}</p>
 					</div>
 				)}
 			</div>
 
-			{/* 🔹 Кнопки редактирования/удаления только для будущих резерваций */}
-			{showActions && (
-				<div className='mt-auto flex justify-end space-x-2'>
-					<button
-						className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-						onClick={onEdit}
-					>
-						Редактировать
-					</button>
-					<button
-						className='px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600'
-						onClick={onDelete}
-					>
-						Отменить
-					</button>
-				</div>
-			)}
+			{/* 🔹 Кнопки для редактирования/удаления или комментария */}
+			<div className='mt-auto flex flex-col space-y-2 pt-3'>
+				{past ? (
+					<>
+						<button
+							className='px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600'
+							onClick={() => setShowForm(!showForm)}
+						>
+							{showForm ? 'Anuluj' : 'Zostaw komentarz'}
+						</button>
+
+						{showForm && (
+							<motion.div
+								initial={{ height: 0, opacity: 0 }}
+								animate={{ height: 'auto', opacity: 1 }}
+								exit={{ height: 0, opacity: 0 }}
+								className='overflow-hidden bg-gray-100 dark:bg-gray-800 p-4 rounded-lg mt-2'
+							>
+								<form
+									onSubmit={handleSubmit(handleSaveComment)}
+									className='flex flex-col gap-3'
+								>
+									<Controller
+										name='rating'
+										control={control}
+										rules={{ required: 'Оцените услугу' }}
+										render={({ field }) => (
+											<div className='flex gap-2'>
+												<Rate
+													count={5}
+													value={field.value}
+													onChange={value => {
+														field.onChange(value)
+														setValue('rating', value) // Устанавливаем значение в `react-hook-form`
+													}}
+												/>
+												<p className='font-bold'>{field.value}</p>
+											</div>
+										)}
+									/>
+
+									{/* 🔹 Поле для комментария */}
+									<Controller
+										name='text'
+										control={control}
+										render={({ field }) => (
+											<TextArea {...field} placeholder='Dodaj komentarz...' />
+										)}
+									/>
+
+									{/* 🔹 Кнопки "Сохранить" и "Отмена" */}
+									<div className='flex justify-end gap-2'>
+										<button
+											type='button'
+											className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+											onClick={() => setShowForm(false)}
+										>
+											Anuluj
+										</button>
+										<button
+											type='submit'
+											className='px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600'
+										>
+											Zapisz
+										</button>
+									</div>
+								</form>
+							</motion.div>
+						)}
+					</>
+				) : (
+					<div className='flex justify-end gap-3'>
+						<button
+							className='px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300'
+							onClick={onEdit}
+						>
+							Edytować
+						</button>
+						<Popover
+							content='Na pewno chcesz anulować?'
+							confirm
+							placement='top'
+							autoShift
+							onConfirm={onDelete}
+						>
+							<button className='px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600'>
+								Anulować
+							</button>
+						</Popover>
+					</div>
+				)}
+			</div>
 		</div>
 	)
 }

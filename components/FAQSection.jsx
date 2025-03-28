@@ -1,7 +1,8 @@
 import Image from 'next/image'
 import Accordion from './ui/acccordion'
+import { memo } from 'react'
 
-const FAQSection = () => {
+const FAQSection = memo(() => {
 	const questions = [
 		{
 			title: 'Czy muszę być obecny podczas wykonywania usługi?',
@@ -30,7 +31,7 @@ const FAQSection = () => {
 		},
 	]
 	return (
-		<div className='container-padding'>
+		<section aria-labelledby='faq-section' className='container-padding'>
 			<h2 className='title'>Najczęściej zadawane pytania (FAQ)</h2>
 			<div className='flex flex-col md:flex-row gap-12'>
 				<div className='max-w-[856px] w-full'>
@@ -43,11 +44,12 @@ const FAQSection = () => {
 						fill={true}
 						style={{ objectFit: 'cover' }}
 						className='rounded-3xl'
+						loading='lazy'
 					/>
 				</div>
 			</div>
-		</div>
+		</section>
 	)
-}
+})
 
 export default FAQSection

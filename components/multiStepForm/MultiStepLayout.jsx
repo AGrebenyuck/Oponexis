@@ -2,12 +2,11 @@
 
 import { createReservation } from '@/actions/booking'
 import useFetch from '@/hooks/useFetch'
-import { isLoggedIn } from '@/lib/checkUser'
 import { reservationSchema } from '@/lib/validators'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import { DateTime } from 'luxon'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, memo, useContext, useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import Button from '../ui/button'
 import Modal from '../ui/modal'
@@ -18,6 +17,7 @@ import SecondStep from './SecondStep'
 import ThirdStep from './ThirdStep'
 
 const priceContext = createContext(null)
+const FORM_STORAGE_KEY = 'multiStepFormData'
 
 const MultiStepLayout = () => {
 	const [step, setStep] = useState(1)
@@ -35,9 +35,26 @@ const MultiStepLayout = () => {
 			agree: false,
 			serviceName: [],
 			service: [],
-			isLogged: false,
+			additionalService: false,
 		},
 	})
+
+	const formValues = methods.watch()
+
+	// Загружаем данные из localStorage при первом рендере
+	useEffect(() => {
+		const savedData = localStorage?.getItem(FORM_STORAGE_KEY)
+		if (savedData) {
+			const parsedData = JSON.parse(savedData)
+			Object.keys(parsedData).forEach(key =>
+				methods.setValue(key, parsedData[key])
+			)
+		}
+	}, [methods.setValue])
+	// Сохраняем данные формы в localStorage при каждом изменении
+	useEffect(() => {
+		localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formValues))
+	}, [formValues])
 
 	const {
 		loading,
@@ -59,6 +76,9 @@ const MultiStepLayout = () => {
 		const end = start.plus({ minutes: data.duration })
 
 		const bookingData = {
+			name: data.name,
+			phone: data.phone,
+			email: data.email,
 			address: data.address,
 			service: data.service.length > 1 ? 'Zestaw' : data.serviceName[0],
 			comment: data.additionalInfo,
@@ -67,11 +87,15 @@ const MultiStepLayout = () => {
 			startTime: start.toISO(),
 			endTime: end.toISO(),
 			services: data.service,
+			serviceNames: data.serviceName,
+			isAdditionalService: data.additionalService,
+			price: price?.isDiscountApplied
+				? price?.discountedTotal.toFixed(2)
+				: price?.baseTotal,
 		}
 
 		const result = await fnCreateBooking(bookingData)
 
-		// Проверяем, что вернула функция
 		if (result?.success) {
 			setResultStatus('success')
 			setResultMessage('Rezerwacja została pomyślnie utworzona.')
@@ -82,6 +106,7 @@ const MultiStepLayout = () => {
 
 		// Открываем модальное окно
 		setModalVisible(true)
+		localStorage.removeItem(FORM_STORAGE_KEY)
 		reset()
 		setStep(1)
 	}
@@ -99,17 +124,6 @@ const MultiStepLayout = () => {
 		visible: { opacity: 1, x: 0 },
 		exit: { opacity: 0, x: step === 3 ? 50 : -50 },
 	}
-
-	const [loggedIn, setLoggedIn] = useState(false)
-
-	useEffect(() => {
-		const checkAuth = async () => {
-			const status = await isLoggedIn()
-			setLoggedIn(status)
-			setValue('isLogged', status)
-		}
-		checkAuth()
-	}, [])
 
 	return (
 		<>
@@ -146,7 +160,7 @@ const MultiStepLayout = () => {
 											{price.isDiscountApplied && price.baseTotal !== 0 && (
 												<span className='text-green-500 ml-1'>
 													Kod promocyjny zastosowany! Rabat{' '}
-													{price.discountAmount}
+													{price.discountValue}
 													{price.discountType}
 													<br />
 													Całkowita cena: {price.discountedTotal.toFixed(2)} PLN
@@ -163,16 +177,14 @@ const MultiStepLayout = () => {
 													'address',
 													'service',
 													'agree',
-													'isLogged',
 												])
-
-												console.log(errors)
 
 												if (isValid) {
 													nextStep()
 												}
 											}}
 											className='w-full md:w-auto'
+											aria-label='Previous step'
 										>
 											Dalej
 										</Button>
@@ -189,7 +201,7 @@ const MultiStepLayout = () => {
 								exit='exit'
 								className='max-w-[350px] sm:max-w-[500px] md:max-w-[750px] lg:max-w-[1042px] mx-auto'
 							>
-								<SecondStep />
+								<SecondStep nextStep={nextStep} />
 								{errors.date && (
 									<p className='text-red-500'>{errors.date.message}</p>
 								)}
@@ -197,7 +209,9 @@ const MultiStepLayout = () => {
 									<p className='text-red-500 mt-2'>{errors.time.message}</p>
 								)}
 								<div className='mt-10 lg:mt-20 3xl:mt-24 flex justify-between'>
-									<Button onClick={prevStep}>Powrót</Button>
+									<Button onClick={prevStep} aria-label='Previous step'>
+										Powrót
+									</Button>
 									<Button
 										onClick={async () => {
 											const isValid = await trigger(['date', 'time'])
@@ -205,6 +219,7 @@ const MultiStepLayout = () => {
 												nextStep()
 											}
 										}}
+										aria-label='next step'
 									>
 										Dalej
 									</Button>
@@ -224,8 +239,13 @@ const MultiStepLayout = () => {
 									<ThirdStep />
 								</priceContext.Provider>
 								<div className='flex gap-10 mt-4 lg:mt-0'>
-									<Button onClick={prevStep}>Powrót</Button>
-									<Button onClick={methods.handleSubmit(onSubmit)}>
+									<Button onClick={prevStep} aria-label='Previous step'>
+										Powrót
+									</Button>
+									<Button
+										onClick={methods.handleSubmit(onSubmit)}
+										aria-label='Reservation button'
+									>
 										{loading ? 'Rezerwacja...' : 'Rezerwacja'}
 									</Button>
 								</div>

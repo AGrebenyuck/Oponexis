@@ -3,10 +3,10 @@ import TestimonialSlider from './TestimonialSlider'
 
 const TestimonialsSection = () => {
 	return (
-		<div className='container-padding'>
+		<section className='container-padding'>
 			<h2 className='title'>Zadowoleni klienci o nas</h2>
 			<TestimonialSlider />
-		</div>
+		</section>
 	)
 }
 

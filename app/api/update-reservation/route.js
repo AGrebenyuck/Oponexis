@@ -4,33 +4,37 @@ export async function POST(req) {
 	try {
 		const data = await req.json()
 
-		// Обновляем резервацию в БД
-		const updatedReservation = await db.reservation.update({
-			where: { id: data.id },
-			data: {
-				serviceName: data.serviceName,
-				address: data.address,
-				contactInfo: data.contactInfo,
-				startTime: new Date(data.date + 'T' + data.time + ':00'),
-				endTime: new Date(data.date + 'T' + data.timeEnd + ':00'),
-			},
-			include: {
-				services: true,
-			},
-		})
+		const updatedReservation = await db.$transaction(async prisma => {
+			// Обновляем резервацию
+			const reservation = await prisma.reservation.update({
+				where: { id: data.id },
+				data: {
+					serviceName: data.serviceName,
+					address: data.address,
+					contactInfo: data.contactInfo,
+					startTime: new Date(`${data.date}T${data.time}:00`),
+					endTime: new Date(`${data.date}T${data.timeEnd}:00`),
+				},
+			})
 
-		// Обновляем услуги (удаляем старые и добавляем новые)
-		await db.serviceReservation.deleteMany({
-			where: { reservationId: data.id },
-		})
+			// Удаляем старые услуги
+			await prisma.serviceReservation.deleteMany({
+				where: { reservationId: data.id },
+			})
 
-		const newServices = data.services.map(serviceId => ({
-			reservationId: data.id,
-			serviceId,
-		}))
+			// Добавляем новые услуги
+			const newServices = data.services.map(serviceId => ({
+				reservationId: data.id,
+				serviceId,
+			}))
 
-		await db.serviceReservation.createMany({
-			data: newServices,
+			await prisma.serviceReservation.createMany({ data: newServices })
+
+			// Загружаем обновленные данные бронирования (включая новые услуги)
+			return prisma.reservation.findUnique({
+				where: { id: data.id },
+				include: { services: true },
+			})
 		})
 
 		return new Response(JSON.stringify({ success: true, updatedReservation }), {
@@ -38,7 +42,7 @@ export async function POST(req) {
 			headers: { 'Content-Type': 'application/json' },
 		})
 	} catch (error) {
-		console.error('Ошибка обновления бронирования:', error)
+		console.error('Ошибка обновления бронирования api:', error)
 		return new Response(
 			JSON.stringify({ success: false, error: error.message }),
 			{

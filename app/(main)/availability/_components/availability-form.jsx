@@ -126,10 +126,20 @@ const AvailabilityForm = ({ initialData }) => {
 					</div>
 				)
 			})}
-			<Input
-				{...register('timeGap', { valueAsNumber: true })}
-				value={initialData.timeGap}
-				className='mt-5'
+			<Controller
+				name='timeGap'
+				control={control}
+				render={({ field }) => (
+					<Input
+						{...field}
+						type='number'
+						className='mt-5'
+						onChange={e => {
+							const newValue = e.target.value ? Number(e.target.value) : ''
+							field.onChange(newValue) // ✅ Обновляем значение
+						}}
+					/>
+				)}
 			/>
 			{errors?.timeGap && (
 				<span className='text-red-900'>{errors.timeGap.message}</span>

@@ -123,9 +123,10 @@ export const createZadarmaTask = async (reservation, customerId, dealId) => {
 	try {
 		const description = `Rezerwacja usługi: ${reservation.serviceNames.join(
 			', '
-		)}| Kontakt: ${reservation.contacts}| Adres: ${reservation.address}| ${
+		)} | Kontakt: ${reservation.contacts}| Adres: ${reservation.address} | ${
 			reservation.isAdditionalService ? 'Zadzwoń po dodatkowe usługi' : ''
-		}`
+		} |  ${reservation.vin}`
+		const NeedToCall = reservation.isAdditionalService ? ' | Zadzwoń' : ''
 
 		const response = await api({
 			http_method: 'POST',
@@ -133,7 +134,7 @@ export const createZadarmaTask = async (reservation, customerId, dealId) => {
 			params: {
 				event: {
 					type: 'task', // Тип события (например, встреча)
-					title: `${reservation.service} | dealId:${dealId}`,
+					title: `${reservation.service} | dealId:${dealId} ${NeedToCall}`,
 					start: reservation.startTime,
 					end: reservation.endTime,
 					description: description,
@@ -143,8 +144,6 @@ export const createZadarmaTask = async (reservation, customerId, dealId) => {
 				},
 			},
 		})
-
-		console.log(response)
 
 		if (response.status === 'success') {
 			console.log('✅ Zadanie utworzone w Zadarma CRM:', response)
@@ -156,19 +155,6 @@ export const createZadarmaTask = async (reservation, customerId, dealId) => {
 		console.error('❌ Błąd podczas tworzenia zadania w Zadarma:', error)
 		return { success: false, error: error.message }
 	}
-}
-
-// 🟢 Пример использования функций
-const customerData = {
-	name: 'Artem Nowak',
-	phone: '+48 123 456 789',
-	email: 'artem@example.com',
-}
-
-const reservationData = {
-	startTime: '2025-03-26T14:00:00+01:00',
-	endTime: '2025-03-26T15:15:00+01:00',
-	serviceName: 'Pakiet Serwisowy',
 }
 
 export const processReservation = async () => {

@@ -2,13 +2,14 @@ import { getPromoCodes } from '@/actions/promocode'
 import { getServices } from '@/actions/service'
 import { calculateTotalDuration, calculateTotalPrice } from '@/lib/calculating'
 import { memo, useEffect, useMemo, useState } from 'react'
-import { Controller, useFormContext } from 'react-hook-form'
+import { Controller, useFormContext, useWatch } from 'react-hook-form'
 
 import { QuestionIcon, SuccessCircleIcon } from '../Icons'
 import Checkbox from '../ui/checkBox'
 import Input from '../ui/input'
 import Popover from '../ui/popover'
-import { Select, SelectOption } from '../ui/select'
+
+import Select, { SelectOption } from '../ui/select'
 import TextArea from '../ui/textArea'
 import { usePriceContext } from './MultiStepLayout'
 
@@ -29,26 +30,30 @@ const FirstStep = memo(() => {
 	const [availablePromoCodes, setAvailablePromoCodes] = useState([])
 	const [isAdditionalService, setIsAdditionalService] = useState(false)
 
-	const selectedServiceValues = watch('serviceName')
 	const promoValues = watch('promocode')
+	const isAdditionalServiceChecked = watch('additionalService')
 	const additionalService = ['Wymiana i wyważanie kół', 'Wymiana oleju']
 
 	// 📌 Записываем в `useState` после рендера
+	const watchedServiceNames = useWatch({ name: 'serviceName' })
+
 	useEffect(() => {
-		if (selectedServiceValues) {
-			setSelectedServices(selectedServiceValues)
-			setPromoCode(promoValues)
-			setIsAdditionalService(
-				additionalService.some(item => new Set(selectedServices).has(item))
-			)
-		}
-		if (selectedServices.length > 0) {
-			setValue(
-				'duration',
-				calculateTotalDuration(selectedServices, services.prices)
-			)
-		}
-	}, [selectedServices])
+		if (!watchedServiceNames || !services.prices) return
+
+		setPromoCode(promoValues)
+		setSelectedServices(watchedServiceNames)
+
+		const hasExtra = additionalService.some(item =>
+			watchedServiceNames.includes(item)
+		)
+		setIsAdditionalService(hasExtra)
+
+		const duration = calculateTotalDuration(
+			watchedServiceNames,
+			services.prices
+		)
+		setValue('duration', duration)
+	}, [watchedServiceNames, services.prices])
 
 	// Записываем значения в useState только по мере необходимости
 	useEffect(() => {
@@ -102,6 +107,66 @@ const FirstStep = memo(() => {
 					name='service'
 					control={control}
 					render={({ field }) => {
+						const mainIds = services.prices?.map(s => s.id)
+						const allSelectedIds = watch('serviceNameIds') || []
+
+						return (
+							<Select
+								multiple
+								value={allSelectedIds}
+								onChange={selectedIds => {
+									// ⏺ Сохраняем ВСЕ выбранные id (главные + подопции)
+									setValue('serviceNameIds', selectedIds)
+
+									// ⏺ Только главные id → в service
+									const filteredMainIds = selectedIds.filter(id =>
+										mainIds.includes(id)
+									)
+
+									// ⏺ Собираем имена всех выбранных (и главных, и подопций)
+									const selectedNames = selectedIds
+										.map(id => {
+											const main = services.prices.find(s => s.id === id)
+											if (main) return main.name
+											for (const s of services.prices) {
+												const found = s.additionalServices?.find(
+													sub => sub.id === id
+												)
+												if (found) return found.name
+											}
+											return null
+										})
+										.filter(Boolean)
+
+									field.onChange(filteredMainIds) // 💾 сохраняем только главные
+									setValue('serviceName', selectedNames)
+									setSelectedServices(selectedNames)
+								}}
+							>
+								{services.prices?.map(service => (
+									<SelectOption
+										key={service.id}
+										value={service.id}
+										subOptions={
+											service.additionalServices?.map(sub => ({
+												value: sub.id,
+												label: sub.name,
+												price: sub.price,
+											})) || []
+										}
+									>
+										{service.name} - {service.price} PLN
+									</SelectOption>
+								))}
+							</Select>
+						)
+					}}
+				/>
+
+				{/* <Controller
+					name='service'
+					control={control}
+					render={({ field }) => {
 						return (
 							<Select
 								{...field}
@@ -142,38 +207,43 @@ const FirstStep = memo(() => {
 							</Select>
 						)
 					}}
-				/>
+				/> */}
 				{errors.service && (
 					<p className='text-red-500'>{errors.service.message}</p>
 				)}
 				{isAdditionalService && (
-					<div className='flex items-center gap-2'>
-						<Controller
-							name='additionalService'
-							control={control}
-							render={({ field }) => (
-								<Checkbox
-									checked={field.value}
-									onChange={checked => {
-										setValue(`additionalService`, checked)
-									}}
-									label={`Nie posiadam własnych części zamiennych
+					<>
+						<div className='flex items-center gap-2'>
+							<Controller
+								name='additionalService'
+								control={control}
+								render={({ field }) => (
+									<Checkbox
+										checked={field.value}
+										onChange={checked => {
+											setValue(`additionalService`, checked)
+										}}
+										label={`Nie posiadam własnych części zamiennych
 									`}
-								/>
-							)}
-						/>
-						<Popover content='Jeżeli nie posiadasz własnych części zamiennych, zadzwonimy do Ciebie w celu wyjaśnienia zakupu.'>
-							<button
-								type='button'
-								onMouseDown={e => {
-									e.preventDefault() // 💡 Блокируем фокусировку
-									e.stopPropagation() // 💡 На всякий случай
-								}}
-							>
-								<QuestionIcon className='w-5 h-5' />
-							</button>
-						</Popover>
-					</div>
+									/>
+								)}
+							/>
+							<Popover content='Jeżeli nie posiadasz własnych części zamiennych, zadzwonimy do Ciebie w celu wyjaśnienia zakupu.'>
+								<button
+									type='button'
+									onMouseDown={e => {
+										e.preventDefault()
+										e.stopPropagation()
+									}}
+								>
+									<QuestionIcon className='w-5 h-5' />
+								</button>
+							</Popover>
+						</div>
+						{isAdditionalServiceChecked && (
+							<Input {...register('vin')} type='text' placeholder='Vin Numer' />
+						)}
+					</>
 				)}
 				<Input
 					{...register('promocode')}

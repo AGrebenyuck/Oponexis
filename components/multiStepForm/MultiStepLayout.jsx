@@ -6,7 +6,7 @@ import { reservationSchema } from '@/lib/validators'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { AnimatePresence, motion } from 'framer-motion'
 import { DateTime } from 'luxon'
-import { createContext, memo, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import Button from '../ui/button'
 import Modal from '../ui/modal'
@@ -92,6 +92,7 @@ const MultiStepLayout = () => {
 			price: price?.isDiscountApplied
 				? price?.discountedTotal.toFixed(2)
 				: price?.baseTotal,
+			vin: data.vin,
 		}
 
 		const result = await fnCreateBooking(bookingData)
@@ -170,6 +171,7 @@ const MultiStepLayout = () => {
 
 										<Button
 											onClick={async () => {
+												const isVinChecked = getValues('additionalService')
 												const isValid = await trigger([
 													'email',
 													'phone',
@@ -177,6 +179,7 @@ const MultiStepLayout = () => {
 													'address',
 													'service',
 													'agree',
+													isVinChecked ? 'vin' : '',
 												])
 
 												if (isValid) {
@@ -184,7 +187,8 @@ const MultiStepLayout = () => {
 												}
 											}}
 											className='w-full md:w-auto'
-											aria-label='Previous step'
+											aria-label='Next step'
+											disabled
 										>
 											Dalej
 										</Button>

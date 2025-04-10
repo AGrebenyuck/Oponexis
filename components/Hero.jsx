@@ -14,6 +14,29 @@ const handleClick = (e, targetId) => {
 		block: 'start',
 	})
 }
+const Click = (e, targetId) => {
+	e.preventDefault()
+
+	fetch(
+		'https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/WDB2030611A052311?format=json'
+	)
+		.then(response => response.json())
+		.then(data => {
+			const results = data.Results
+			const carInfo = results.reduce((acc, item) => {
+				// Ищем ключи, которые нам важны
+				if (item.Variable === 'Make') acc.make = item.Value
+				if (item.Variable === 'Model Year') acc.year = item.Value
+				if (item.Variable === 'Vehicle Type') acc.type = item.Value
+				return acc
+			}, {})
+
+			console.log('Марка:', carInfo.make)
+			console.log('Год выпуска:', carInfo.year)
+			console.log('Тип автомобиля:', carInfo.type)
+		})
+		.catch(error => console.log('Ошибка при запросе данных:', error))
+}
 
 const Hero = memo(() => {
 	const [isMobile, setIsMobile] = useState(true)
@@ -62,6 +85,9 @@ const Hero = memo(() => {
 								Zadzwoń
 							</Button>
 						</Link>
+						<Button type='alternative' className='w-full' onClick={Click}>
+							check
+						</Button>
 					</div>
 				</div>
 				{!isMobile && <HeroSlider />}

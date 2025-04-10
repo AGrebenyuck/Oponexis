@@ -55,10 +55,9 @@ const TestimonialSlider = memo(() => {
 		{
 			image: '/avatar/6.jpg',
 			name: 'Krzysztof Dąbrowski',
-			rating: 3,
+			rating: 5,
 			service: 'Serwis klimatyzacji',
-			comment:
-				'Działa lepiej, ale cena dość wysoka. Plus za wygodę, minus za koszt. Może w przyszłości ponownie skorzystam.',
+			comment: 'Super👍',
 		},
 		{
 			image: '/avatar/7.jpg',

@@ -43,14 +43,26 @@ model Reservation {
 }
 
 model Service {
-  id           String               @id @default(cuid())
-  name         String
-  description  String?
-  duration     Int
-  price        Float
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
-  reservations ServiceReservation[]
+  id                 String               @id @default(cuid())
+  name               String
+  description        String?
+  duration           Int
+  price              Float
+  additionalServices AdditionalServices[]
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  reservations       ServiceReservation[]
+}
+
+model AdditionalServices {
+  id          String   @id @default(cuid())
+  service     Service? @relation(fields: [serviceId], references: [id])
+  serviceId   String?
+  name        String
+  price       Float
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model PromoCode {

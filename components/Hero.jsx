@@ -78,16 +78,13 @@ const Hero = memo(() => {
 							href={'#services'}
 							onClick={e => handleClick(e, 'reservation')}
 						>
-							<Button className='w-full'>Rezerwacja</Button>
+							<Button className='w-full'>Szybka Rezerwacja</Button>
 						</Link>
 						<Link href='tel:+48776888488'>
 							<Button type='alternative' className='w-full'>
 								Zadzwoń
 							</Button>
 						</Link>
-						<Button type='alternative' className='w-full' onClick={Click}>
-							check
-						</Button>
 					</div>
 				</div>
 				{!isMobile && <HeroSlider />}

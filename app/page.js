@@ -17,7 +17,6 @@ export default function Home() {
 			<ReservationSection />
 			<TestimonialsSection />
 			<FAQSection />
-			<ContactsSection />
 		</div>
 	)
 }

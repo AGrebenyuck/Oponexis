@@ -9,6 +9,8 @@ import Checkbox from '../ui/checkBox'
 import Input from '../ui/input'
 import Popover from '../ui/popover'
 
+import Link from 'next/link'
+import AddressAutocomplete from '../ui/addressAutoComplete'
 import Select, { SelectOption } from '../ui/select'
 import TextArea from '../ui/textArea'
 import { usePriceContext } from './MultiStepLayout'
@@ -36,6 +38,18 @@ const FirstStep = memo(() => {
 
 	// 📌 Записываем в `useState` после рендера
 	const watchedServiceNames = useWatch({ name: 'serviceName' })
+
+	const privacyPolicy = () => {
+		return (
+			<p>
+				Wyrażam zgodę na{' '}
+				<Link className='text-secondary-orange' href={'/privacy-policy'}>
+					przetwarzanie moich danych osobowych
+				</Link>
+				.
+			</p>
+		)
+	}
 
 	useEffect(() => {
 		if (!watchedServiceNames || !services.prices) return
@@ -84,6 +98,7 @@ const FirstStep = memo(() => {
 	return (
 		<>
 			<div className='flex flex-col gap-3 lg:gap-11'>
+				{/* <AddressAutocomplete /> */}
 				<Input {...register('name')} placeholder='Imię' autoComplete='name' />
 				<Input
 					{...register('phone')}
@@ -163,51 +178,6 @@ const FirstStep = memo(() => {
 					}}
 				/>
 
-				{/* <Controller
-					name='service'
-					control={control}
-					render={({ field }) => {
-						return (
-							<Select
-								{...field}
-								multiple
-								value={services.prices
-									?.filter(service => field.value?.includes(service.id))
-									.map(service => service.name)}
-								onChange={selectedValues => {
-									// Получаем id выбранных услуг
-									const selectedServices = selectedValues
-										.map(name =>
-											services.prices.find(service => service.name === name)
-										)
-										.filter(Boolean) // Убираем undefined
-
-									// Разделяем на id и name
-									const selectedIds = selectedServices.map(
-										service => service.id
-									)
-									const selectedNames = selectedServices.map(
-										service => service.name
-									)
-
-									// Записываем в `react-hook-form`
-									field.onChange(selectedIds) // ✅ ID услуг
-
-									setValue('serviceName', selectedNames) // ✅ Имена услуг
-
-									setSelectedServices(selectedNames)
-									trigger('service')
-								}}
-							>
-								{services.prices?.map(service => (
-									<SelectOption key={service.name} value={service.name}>
-										{service.name} - {service.price} PLN
-									</SelectOption>
-								))}
-							</Select>
-						)
-					}}
-				/> */}
 				{errors.service && (
 					<p className='text-red-500'>{errors.service.message}</p>
 				)}
@@ -269,7 +239,7 @@ const FirstStep = memo(() => {
 							setValue(`agree`, checked)
 							trigger('agree')
 						}}
-						label={'Wyrażam zgodę na przetwarzanie moich danych osobowych.'}
+						label={privacyPolicy()}
 						className='mt-5'
 					/>
 				)}

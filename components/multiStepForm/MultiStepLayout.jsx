@@ -188,7 +188,6 @@ const MultiStepLayout = () => {
 											}}
 											className='w-full md:w-auto'
 											aria-label='Next step'
-											disabled
 										>
 											Dalej
 										</Button>

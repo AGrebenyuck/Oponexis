@@ -8,7 +8,8 @@ import { getServices } from '@/actions/service'
 import { CalendarArrowLeft, CalendarArrowRight } from '@/components/Icons'
 import Button from '@/components/ui/button'
 import Input from '@/components/ui/input'
-import { Select, SelectOption } from '@/components/ui/select'
+import Select, { SelectOption } from '@/components/ui/select'
+
 import useFetch from '@/hooks/useFetch'
 import { calculateTotalDuration } from '@/lib/calculating'
 import { DateTime } from 'luxon'
@@ -35,6 +36,7 @@ const EditReservationForm = ({ initialData, onSave }) => {
 		handleSubmit,
 		setValue,
 		trigger,
+		watch,
 		formState: { errors },
 	} = useForm({
 		defaultValues: {
@@ -148,40 +150,63 @@ const EditReservationForm = ({ initialData, onSave }) => {
 		<form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-8'>
 			{/* Выбор услуги */}
 			<Controller
-				name='services'
+				name='service'
 				control={control}
-				render={({ field }) => (
-					<Select
-						{...field}
-						multiple
-						value={services.prices
-							?.filter(service => field.value?.includes(service.id))
-							.map(service => service.name)}
-						onChange={selectedValues => {
-							const selectedServices = selectedValues
-								.map(name =>
-									services.prices.find(service => service.name === name)
+				render={({ field }) => {
+					const mainIds = services.prices?.map(s => s.id)
+					const allSelectedIds = watch('serviceNameIds') || []
+
+					return (
+						<Select
+							multiple
+							value={allSelectedIds}
+							onChange={selectedIds => {
+								// ⏺ Сохраняем ВСЕ выбранные id (главные + подопции)
+								setValue('serviceNameIds', selectedIds)
+
+								// ⏺ Только главные id → в service
+								const filteredMainIds = selectedIds.filter(id =>
+									mainIds.includes(id)
 								)
-								.filter(Boolean)
-							setSelectedServices(selectedValues)
 
-							const selectedIds = selectedServices.map(service => service.id)
-							const selectedNames = selectedServices.map(
-								service => service.name
-							)
+								// ⏺ Собираем имена всех выбранных (и главных, и подопций)
+								const selectedNames = selectedIds
+									.map(id => {
+										const main = services.prices.find(s => s.id === id)
+										if (main) return main.name
+										for (const s of services.prices) {
+											const found = s.additionalServices?.find(
+												sub => sub.id === id
+											)
+											if (found) return found.name
+										}
+										return null
+									})
+									.filter(Boolean)
 
-							field.onChange(selectedIds)
-							setValue('serviceName', selectedNames)
-							trigger('services')
-						}}
-					>
-						{services.prices?.map(service => (
-							<SelectOption key={service.id} value={service.name}>
-								{service.name} - {service.price} PLN
-							</SelectOption>
-						))}
-					</Select>
-				)}
+								field.onChange(filteredMainIds) // 💾 сохраняем только главные
+								setValue('serviceName', selectedNames)
+								setSelectedServices(selectedNames)
+							}}
+						>
+							{services.prices?.map(service => (
+								<SelectOption
+									key={service.id}
+									value={service.id}
+									subOptions={
+										service.additionalServices?.map(sub => ({
+											value: sub.id,
+											label: sub.name,
+											price: sub.price,
+										})) || []
+									}
+								>
+									{service.name} - {service.price} PLN
+								</SelectOption>
+							))}
+						</Select>
+					)
+				}}
 			/>
 
 			{/* Выбор даты */}

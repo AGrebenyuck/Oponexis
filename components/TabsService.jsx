@@ -64,6 +64,10 @@ const tabs = [
 			'• Demontujemy i montujemy opony sezonowe.',
 			'• Sprawdzamy i dostosowujemy ciśnienie w oponach.',
 			'• Upewniamy się, że koła są prawidłowo zamontowane i solidnie przykręcone.',
+			<p className='text-secondary-orange'>
+				Uprzejmie informujemy, że opony RunFlat montujemy wyłącznie w naszym
+				serwisie stacjonarnym.
+			</p>,
 		],
 	},
 	{

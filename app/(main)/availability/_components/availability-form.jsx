@@ -5,13 +5,13 @@ import Button from '@/components/ui/button'
 import Checkbox from '@/components/ui/checkBox'
 import Input from '@/components/ui/input'
 import message from '@/components/ui/message'
-import Select, { SelectOption } from '@/components/ui/select'
 import useFetch from '@/hooks/useFetch'
 import { availabilitySchema } from '@/lib/validators'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { timeSlots } from '../data'
+import Select, { SelectOption } from '@/components/ui/select'
 
 const AvailabilityForm = ({ initialData }) => {
 	const {

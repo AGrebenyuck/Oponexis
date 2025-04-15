@@ -1,6 +1,7 @@
 'use client'
 
 import { createReservation } from '@/actions/booking'
+
 import useFetch from '@/hooks/useFetch'
 import { reservationSchema } from '@/lib/validators'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { DateTime } from 'luxon'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
+
 import Button from '../ui/button'
 import Modal from '../ui/modal'
 import Result from '../ui/result'
@@ -64,7 +66,6 @@ const MultiStepLayout = () => {
 
 	const onSubmit = async (data, e) => {
 		e.preventDefault()
-
 		const TIMEZONE = 'Europe/Warsaw' // Часовой пояс
 
 		const date = data.date
@@ -100,6 +101,19 @@ const MultiStepLayout = () => {
 		if (result?.success) {
 			setResultStatus('success')
 			setResultMessage('Rezerwacja została pomyślnie utworzona.')
+			const sendMessage = async () => {
+				await fetch('/api/send-sms', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						number: '+48733315790',
+						message: `Nowa rezerwacja. Serwis:${
+							data.serviceName
+						}, Data: ${start.toFormat('dd-MM-yyyy HH:mm')} `,
+					}),
+				})
+			}
+			sendMessage()
 		} else {
 			setResultStatus('error')
 			setResultMessage(result.error || 'Wystąpił błąd podczas rezerwacji.')
@@ -171,16 +185,19 @@ const MultiStepLayout = () => {
 
 										<Button
 											onClick={async () => {
-												const isVinChecked = getValues('additionalService')
-												const isValid = await trigger([
+												const fields = [
 													'email',
 													'phone',
 													'name',
 													'address',
 													'service',
 													'agree',
-													isVinChecked ? 'vin' : '',
-												])
+												]
+
+												const isVinChecked = getValues('additionalService')
+												if (isVinChecked) fields.push('vin')
+
+												const isValid = await trigger(fields)
 
 												if (isValid) {
 													nextStep()
@@ -246,7 +263,9 @@ const MultiStepLayout = () => {
 										Powrót
 									</Button>
 									<Button
-										onClick={methods.handleSubmit(onSubmit)}
+										onClick={methods.handleSubmit(onSubmit, errors => {
+											console.log('❌ Ошибки формы:', errors)
+										})}
 										aria-label='Reservation button'
 									>
 										{loading ? 'Rezerwacja...' : 'Rezerwacja'}

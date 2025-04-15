@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
-import { usePriceContext } from './MultiStepLayout'
+import { usePriceContext } from '../../components/multiStepForm/MultiStepLayout'
 
 const ThirdStep = () => {
 	const { getValues } = useFormContext()

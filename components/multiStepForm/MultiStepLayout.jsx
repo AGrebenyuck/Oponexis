@@ -131,6 +131,7 @@ const MultiStepLayout = () => {
 		trigger,
 		getValues,
 		setValue,
+		setError,
 		formState: { errors },
 	} = methods
 
@@ -186,16 +187,29 @@ const MultiStepLayout = () => {
 										<Button
 											onClick={async () => {
 												const fields = [
-													'email',
-													'phone',
 													'name',
+													'phone',
+													'email',
 													'address',
 													'service',
 													'agree',
 												]
-
 												const isVinChecked = getValues('additionalService')
-												if (isVinChecked) fields.push('vin')
+
+												if (isVinChecked) {
+													fields.push('vin')
+
+													const vinValue = getValues('vin')
+													if (!vinValue || vinValue.length < 17) {
+														// вручную добавим ошибку
+														setError('vin', {
+															type: 'manual',
+															message:
+																'Numer VIN musi składać się z co najmniej 17 liter',
+														})
+														return
+													}
+												}
 
 												const isValid = await trigger(fields)
 

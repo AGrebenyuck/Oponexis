@@ -113,7 +113,7 @@ export const metadata = {
 		title: 'Oponexis - Wyjazdowy serwis opon w Opolu',
 		description:
 			'Wymiana opon, serwis klimatyzacji, wymiana oleju i inne usługi mobilne w Opolu. Profesjonalna pomoc w każdym miejscu.',
-		image: 'https://www.oponexis.pl/oponexis-og.jpg',
+		image: 'https://www.oponexis.pl/oponexis-og.JPG',
 	},
 }
 

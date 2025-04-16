@@ -189,7 +189,7 @@ const TabsService = memo(() => {
 									)
 									if (item?.originalPrice && item.originalPrice > item.price) {
 										const diff = item.originalPrice - item.price
-										const percent = Math.round(
+										const percents = Math.round(
 											(diff / item.originalPrice) * 100
 										)
 										return (

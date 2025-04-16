@@ -7,6 +7,7 @@ const ThirdStep = () => {
 	const { getValues } = useFormContext()
 	const info = getValues()
 	const price = usePriceContext()
+	console.log(price)
 
 	useEffect(() => {
 		document?.getElementById('formInfo')?.scrollIntoView({
@@ -53,7 +54,7 @@ const ThirdStep = () => {
 					<tr>
 						<td>Cena:</td>
 						<td className='font-semibold pl-3'>
-							{price?.isDiscountApplied
+							{price?.isDiscountApplied || price?.discountFromOriginal
 								? price?.discountedTotal.toFixed(2)
 								: price?.baseTotal}
 							zł

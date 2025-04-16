@@ -90,9 +90,10 @@ const MultiStepLayout = () => {
 			services: data.service,
 			serviceNames: data.serviceName,
 			isAdditionalService: data.additionalService,
-			price: price?.isDiscountApplied
-				? price?.discountedTotal.toFixed(2)
-				: price?.baseTotal,
+			price:
+				price?.isDiscountApplied || price?.discountFromOriginal
+					? price?.discountedTotal.toFixed(2)
+					: price?.baseTotal,
 			vin: data.vin,
 		}
 
@@ -162,24 +163,30 @@ const MultiStepLayout = () => {
 										<p className='text-red-500'>{errors.isLogged.message}</p>
 									)}
 									<div className='flex gap-3 flex-col md:flex-row  justify-between md:items-center mt-4 lg:mt-12'>
-										<p className={`font-semibold text-secondary-orange`}>
+										<p className='font-semibold text-secondary-orange'>
 											Cena:{' '}
 											<span
-												className={`${
-													price.isDiscountApplied && price.baseTotal !== 0
-														? 'line-through'
+												className={
+													price.discountedTotal < price.baseTotal
+														? 'line-through text-gray-500'
 														: ''
-												}`}
+												}
 											>
-												{price.baseTotal} zł
+												{price?.baseTotal?.toFixed(2)} zł
 											</span>
-											{price.isDiscountApplied && price.baseTotal !== 0 && (
-												<span className='text-green-500 ml-1'>
-													Kod promocyjny zastosowany! Rabat{' '}
-													{price.discountValue}
-													{price.discountType}
+											{price.discountedTotal < price.baseTotal && (
+												<span className='text-green-500 ml-2'>
+													{/* Если нужно отобразить процент скидки */}
+													Rabat{' '}
+													{Math.round(
+														((price.baseTotal - price.discountedTotal) /
+															price.baseTotal) *
+															100
+													)}
+													%
+													{/* Rabat: {price.discountFromOriginal.toFixed(2)} zł */}
 													<br />
-													Całkowita cena: {price.discountedTotal.toFixed(2)} PLN
+													Całkowita cena: {price.discountedTotal.toFixed(2)} zł
 												</span>
 											)}
 										</p>

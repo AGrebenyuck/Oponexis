@@ -183,7 +183,25 @@ const TabsService = memo(() => {
 						<div>
 							<p className='font-semibold'>
 								Cena:{' '}
-								<span className='text-[#FD6D02]'>
+								{(() => {
+									const item = prices?.prices?.find(
+										price => price.name === tabs[activeTab].title
+									)
+									if (item?.originalPrice && item.originalPrice > item.price) {
+										const diff = item.originalPrice - item.price
+										const percent = Math.round(
+											(diff / item.originalPrice) * 100
+										)
+										return (
+											<span className='ml-2 text-gray-400 line-through'>
+												{item.originalPrice} zł
+											</span>
+										)
+									}
+									return null
+								})()}
+								<span className='text-secondary-orange'>
+									{' '}
 									{
 										prices?.prices?.find(
 											price => price.name === tabs[activeTab].title

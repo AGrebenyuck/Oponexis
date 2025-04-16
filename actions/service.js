@@ -9,6 +9,7 @@ export async function getServices() {
 				id: true,
 				name: true,
 				price: true,
+				originalPrice: true,
 				duration: true,
 				additionalServices: true,
 			},

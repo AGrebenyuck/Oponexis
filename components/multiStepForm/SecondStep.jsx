@@ -111,6 +111,7 @@ const SecondStep = ({ nextStep }) => {
 				}}
 				selected={selectedDate}
 				onSelect={setSelectedDate}
+				disabled={[{ before: new Date() }]}
 			/>
 			<div id='timeForm'>
 				{loading ? (

@@ -48,6 +48,7 @@ model Service {
   description        String?
   duration           Int
   price              Float
+  originalPrice      Float?
   additionalServices AdditionalServices[]
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt

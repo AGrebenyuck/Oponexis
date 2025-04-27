@@ -1,30 +1,16 @@
 'use client'
 
 import { updateAvailability } from '@/actions/availability'
-import Button from '@/components/ui/button'
-import Checkbox from '@/components/ui/checkBox'
-import Input from '@/components/ui/input'
+import EditableTable from '@/components/EditableTable/EditableTable'
 import message from '@/components/ui/message'
 import useFetch from '@/hooks/useFetch'
-import { availabilitySchema } from '@/lib/validators'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect } from 'react'
-import { Controller, useForm } from 'react-hook-form'
-import { timeSlots } from '../data'
-import Select, { SelectOption } from '@/components/ui/select'
+import { useEffect, useState } from 'react'
+import { defaultAvailability, timeSlots } from '../data'
 
-const AvailabilityForm = ({ initialData }) => {
-	const {
-		register,
-		watch,
-		control,
-		setValue,
-		handleSubmit,
-		formState: { errors },
-	} = useForm({
-		resolver: zodResolver(availabilitySchema),
-		defaultValues: { ...initialData },
-	})
+const AvailabilityTable = ({ initialData = defaultAvailability }) => {
+	const [availability, setAvailability] = useState([])
+	const [originalAvailability, setOriginalAvailability] = useState([])
+	const [isDirty, setIsDirty] = useState(false)
 
 	const {
 		fn: fnUpdateAvailability,
@@ -34,125 +20,179 @@ const AvailabilityForm = ({ initialData }) => {
 	} = useFetch(updateAvailability)
 
 	useEffect(() => {
+		const days = Object.entries(initialData)
+			.filter(([day]) => day !== 'timeGap')
+			.map(([day, info]) => ({
+				day,
+				isAvailable: info.isAvailable,
+				startTime: info.startTime,
+				endTime: info.endTime,
+			}))
+		setAvailability(days)
+		setOriginalAvailability(days)
+		setTimeGap(initialData.timeGap || 0)
+	}, [initialData])
+
+	useEffect(() => {
 		if (data === undefined) return
 		if (data?.success) {
-			message.success('Operacja zakończona!')
+			message.success('✅ Zaktualizowano dostępność!')
 		} else {
-			message.error('Błąd żądania! ' + error)
+			message.error('❌ Błąd aktualizacji: ' + error)
 		}
 	}, [data])
 
-	const onSubmit = async data => {
-		const result = await fnUpdateAvailability(data)
+	const [timeGap, setTimeGap] = useState(0)
+
+	const handleSave = async () => {
+		const result = {}
+
+		availability.forEach(day => {
+			result[day.day] = {
+				isAvailable: day.isAvailable,
+				startTime: day.startTime,
+				endTime: day.endTime,
+			}
+		})
+
+		result.timeGap = timeGap
+
+		await fnUpdateAvailability(result)
+		setOriginalAvailability(availability)
+		setIsDirty(false)
 	}
 
 	return (
-		<form onSubmit={handleSubmit(onSubmit)}>
-			{[
-				'monday',
-				'tuesday',
-				'wednesday',
-				'thursday',
-				'friday',
-				'saturday',
-				'sunday',
-			].map(day => {
-				const isAvailable = watch(`${day}.isAvailable`)
-
-				return (
-					<div key={day} className='flex items-center gap-5 mb-5'>
-						<Controller
-							name={`${day}.isAvailable`}
-							control={control}
-							render={({ field }) => (
-								<Checkbox
-									checked={field.value}
-									onChange={checked => {
-										setValue(`${day}.isAvailable`, checked)
-										if (!checked) {
-											setValue(`${day}.startTime`, '09:00')
-											setValue(`${day}.endTime`, '17:00')
-										}
+		<div className='space-y-6'>
+			<EditableTable
+				title='Dostępność'
+				data={availability}
+				onChange={data => {
+					setAvailability(data)
+					setIsDirty(true)
+				}}
+				isDirty={isDirty}
+				showActions={false}
+				showAddButton={false}
+				columns={[
+					{
+						title: 'Dzień',
+						dataIndex: 'day',
+						render: value => (
+							<span className='capitalize text-primary-blue md:text-white'>
+								{translateDay(value)}
+							</span>
+						),
+						editable: false,
+					},
+					{
+						title: 'Dostępny',
+						dataIndex: 'isAvailable',
+						render: (value, row, rowIndex) => (
+							<input
+								type='checkbox'
+								checked={value}
+								onChange={e => {
+									const updated = [...availability]
+									updated[rowIndex].isAvailable = e.target.checked
+									if (!e.target.checked) {
+										updated[rowIndex].startTime = '09:00'
+										updated[rowIndex].endTime = '17:00'
+									}
+									setAvailability(updated)
+									setIsDirty(true)
+								}}
+							/>
+						),
+					},
+					{
+						title: 'Od',
+						dataIndex: 'startTime',
+						render: (value, row, rowIndex) =>
+							row.isAvailable && (
+								<select
+									className='bg-transparent text-primary-blue md:text-white border rounded p-1 w-full'
+									value={value}
+									onChange={e => {
+										const updated = [...availability]
+										updated[rowIndex].startTime = e.target.value
+										setAvailability(updated)
+										setIsDirty(true)
 									}}
-									label={day}
-									className='capitalize'
-								/>
-							)}
-						/>
-						{isAvailable && (
-							<>
-								<Controller
-									name={`${day}.startTime`}
-									control={control}
-									render={({ field }) => {
-										return (
-											<Select {...field}>
-												{timeSlots.map(time => {
-													return (
-														<SelectOption key={time} value={time}>
-															{time}
-														</SelectOption>
-													)
-												})}
-											</Select>
-										)
+								>
+									{timeSlots.map(time => (
+										<option key={time} value={time}>
+											{time}
+										</option>
+									))}
+								</select>
+							),
+					},
+					{
+						title: 'Do',
+						dataIndex: 'endTime',
+						render: (value, row, rowIndex) =>
+							row.isAvailable && (
+								<select
+									className='bg-transparent text-primary-blue md:text-white border rounded p-1 w-full'
+									value={value}
+									onChange={e => {
+										const updated = [...availability]
+										updated[rowIndex].endTime = e.target.value
+										setAvailability(updated)
+										setIsDirty(true)
 									}}
-								/>
-								<span>To</span>
-								<Controller
-									name={`${day}.endTime`}
-									control={control}
-									render={({ field }) => {
-										return (
-											<Select {...field}>
-												{timeSlots.map(time => {
-													return (
-														<SelectOption key={time} value={time}>
-															{time}
-														</SelectOption>
-													)
-												})}
-											</Select>
-										)
-									}}
-								/>
-								{errors[day]?.endTime && (
-									<span className='text-red-300 text-sm ml-2'>
-										{errors[day].endTime.message}
-									</span>
-								)}
-							</>
-						)}
-					</div>
-				)
-			})}
-			<Controller
-				name='timeGap'
-				control={control}
-				render={({ field }) => (
-					<Input
-						{...field}
-						type='number'
-						className='mt-5'
-						onChange={e => {
-							const newValue = e.target.value ? Number(e.target.value) : ''
-							field.onChange(newValue) // ✅ Обновляем значение
-						}}
-					/>
-				)}
+								>
+									{timeSlots.map(time => (
+										<option key={time} value={time}>
+											{time}
+										</option>
+									))}
+								</select>
+							),
+					},
+				]}
 			/>
-			{errors?.timeGap && (
-				<span className='text-red-900'>{errors.timeGap.message}</span>
-			)}
-			<Button
-				onClick={handleSubmit(onSubmit)}
-				className='mt-5'
-				disabled={loading}
-			>
-				{loading ? 'Zmienić...' : 'Zmienić'}
-			</Button>
-		</form>
+
+			<div className='border rounded-xl p-4 space-y-3'>
+				<h3 className='text-base font-bold'>
+					Przerwa między terminami (w minutach)
+				</h3>
+				<input
+					type='number'
+					className='border p-2 text-primary-blue rounded w-full'
+					value={timeGap}
+					onChange={e => {
+						setTimeGap(Number(e.target.value) || 0)
+						setIsDirty(true)
+					}}
+				/>
+			</div>
+
+			<div className='text-right pt-4'>
+				<button
+					onClick={handleSave}
+					className='bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50'
+					disabled={!isDirty || loading}
+				>
+					{loading ? 'Zapisywanie...' : 'Zapisz zmiany'}
+				</button>
+			</div>
+		</div>
 	)
 }
 
-export default AvailabilityForm
+export default AvailabilityTable
+
+function translateDay(day) {
+	const days = {
+		monday: 'Poniedziałek',
+		tuesday: 'Wtorek',
+		wednesday: 'Środa',
+		thursday: 'Czwartek',
+		friday: 'Piątek',
+		saturday: 'Sobota',
+		sunday: 'Niedziela',
+	}
+	return days[day] || day
+}

@@ -1,3 +1,4 @@
+import ContactsSection from '@/components/ContactsSection'
 import Header from '@/components/Header'
 import { plPL } from '@clerk/localizations'
 import { ClerkProvider } from '@clerk/nextjs'
@@ -5,7 +6,6 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Montserrat, Nunito } from 'next/font/google'
 import './globals.css'
-import ContactsSection from '@/components/ContactsSection'
 
 const montserratRegular = Montserrat({
 	weight: ['400', '600', '700', '800'],
@@ -138,7 +138,7 @@ export default function RootLayout({ children }) {
 		>
 			<html lang='pl' className='overflow-x-hidden'>
 				<head>
-					<link rel='icon' href='/siteIcon/favicon.ico' type='x-icon' />
+					<link rel='icon' href='/siteIcon/favicon.ico' type='image/x-icon' />
 					<link rel='apple-touch-icon' href='/siteIcon/icon.svg'></link>
 				</head>
 				<body

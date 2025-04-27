@@ -29,6 +29,7 @@ const MultiStepLayout = () => {
 	const [resultStatus, setResultStatus] = useState(null)
 	const [resultMessage, setResultMessage] = useState('')
 	const [price, setPrice] = useState([])
+	const [isRestored, setIsRestored] = useState(false)
 
 	const methods = useForm({
 		resolver: zodResolver(reservationSchema),
@@ -43,7 +44,6 @@ const MultiStepLayout = () => {
 
 	const formValues = methods.watch()
 
-	// Загружаем данные из localStorage при первом рендере
 	useEffect(() => {
 		const savedData = localStorage?.getItem(FORM_STORAGE_KEY)
 		if (savedData) {
@@ -52,11 +52,13 @@ const MultiStepLayout = () => {
 				methods.setValue(key, parsedData[key])
 			)
 		}
+		setIsRestored(true) // ✅ Помечаем, что восстановление завершено
 	}, [methods.setValue])
-	// Сохраняем данные формы в localStorage при каждом изменении
+
 	useEffect(() => {
+		if (!isRestored) return // ⛔ Пока данные не восстановлены — ничего не сохраняем
 		localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formValues))
-	}, [formValues])
+	}, [formValues, isRestored])
 
 	const {
 		loading,

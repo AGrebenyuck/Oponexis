@@ -21,7 +21,7 @@ export const createZadarmaCustomer = async customer => {
 					contacts: [
 						{
 							type: 'email_personal',
-							value: customer.email,
+							value: customer.email ? customer.email : '',
 						},
 					],
 					comment: `Nowy klient: ${customer.name}`,
@@ -233,10 +233,8 @@ export const updateZadarmaDeal = async (dealId, updateFields = {}) => {
 }
 
 export const getMember = async () => {
-	const date = '2024-12-26'
-	const response = await api({
-		http_method: 'GET',
-		api_method: '/v1/zcrm/events',
+	const info = await api({
+		api_method: '/v1/zcrm/customers/68873909',
 	})
-	console.log(response)
+	console.log('Ты авторизован как:', info)
 }

@@ -1,3 +1,5 @@
+// 💡 Очищенная и безопасная версия каскадного Select с SelectOption
+
 import {
 	Children,
 	cloneElement,
@@ -44,6 +46,27 @@ const Select = forwardRef(
 			}
 		}, [value])
 
+		// 💡 Безопасный сбор meta только один раз
+		useLayoutEffect(() => {
+			const map = {}
+
+			Children.forEach(children, child => {
+				if (!child?.props?.value) return
+
+				const value = child.props.value
+				const label = extractLabel(child.props.children)
+				const subOptions = child.props.subOptions || []
+
+				map[value] = { label, subOptions }
+
+				subOptions.forEach(sub => {
+					map[sub.value] = { label: sub.label, parent: value }
+				})
+			})
+
+			setOptionMetaMap(map)
+		}, [children])
+
 		const handleSelect = (selectedValue, isSub = false) => {
 			if (multiple) {
 				let newValues = []
@@ -51,7 +74,6 @@ const Select = forwardRef(
 				if (selected.includes(selectedValue)) {
 					newValues = selected.filter(v => v !== selectedValue)
 
-					// Удалить подопции при снятии главной опции
 					if (!isSub && optionMetaMap[selectedValue]?.subOptions?.length > 0) {
 						const subValues = optionMetaMap[selectedValue].subOptions.map(
 							s => s.value
@@ -73,45 +95,13 @@ const Select = forwardRef(
 		}
 
 		const handleRemove = valueToRemove => {
-			const parentSubOptions = optionMetaMap[valueToRemove]?.subOptions || []
-			const subValues = parentSubOptions.map(s => s.value)
-
+			const subValues =
+				optionMetaMap[valueToRemove]?.subOptions?.map(s => s.value) || []
 			const newValues = selected.filter(
 				v => v !== valueToRemove && !subValues.includes(v)
 			)
-
 			setSelected(newValues)
 			onChange?.(newValues)
-		}
-
-		const collectOptionMeta = (value, labelNode, subOptions = []) => {
-			let label = ''
-
-			if (Array.isArray(labelNode)) {
-				// Извлекаем первый текстовый элемент
-				label = labelNode.find(child => typeof child === 'string') || ''
-			} else if (typeof labelNode === 'string') {
-				label = labelNode
-			} else if (labelNode?.props?.children) {
-				// Если это React-нода с children
-				const children = labelNode.props.children
-				label = Array.isArray(children)
-					? children.find(child => typeof child === 'string') || ''
-					: typeof children === 'string'
-					? children
-					: ''
-			}
-
-			setOptionMetaMap(prev => ({
-				...prev,
-				[value]: { label, subOptions },
-				...Object.fromEntries(
-					subOptions.map(sub => [
-						sub.value,
-						{ label: sub.label, parent: value },
-					])
-				),
-			}))
 		}
 
 		const renderGroupedTags = () => {
@@ -157,44 +147,29 @@ const Select = forwardRef(
 					</span>
 				)
 
-				if (group.subs.length > 0) {
-					group.subs.forEach(sub => {
-						tags.push(
+				group.subs.forEach(sub => {
+					tags.push(
+						<span
+							key={sub.value}
+							className='bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded flex items-center mr-1 mb-1 ml-2'
+						>
+							{sub.label}
 							<span
-								key={sub.value}
-								className='bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded flex items-center mr-1 mb-1 ml-2'
+								className='ml-1 text-red-500 cursor-pointer'
+								onClick={e => {
+									e.stopPropagation()
+									handleRemove(sub.value)
+								}}
 							>
-								{sub.label}
-								<span
-									className='ml-1 text-red-500 cursor-pointer'
-									onClick={e => {
-										e.stopPropagation()
-										handleRemove(sub.value)
-									}}
-								>
-									✕
-								</span>
+								✕
 							</span>
-						)
-					})
-				}
+						</span>
+					)
+				})
 
 				return tags
 			})
 		}
-
-		// 🔥 Ключевой момент — при первом рендере регистрируем мета-данные
-		useLayoutEffect(() => {
-			Children.forEach(children, child => {
-				if (child?.props?.value) {
-					const value = child.props.value
-					const label = child.props.children
-					const subOptions = child.props.subOptions || []
-
-					collectOptionMeta(value, label, subOptions)
-				}
-			})
-		}, [children])
 
 		return (
 			<div ref={selectRef} className='relative inline-block w-full'>
@@ -214,7 +189,7 @@ const Select = forwardRef(
 						</div>
 					) : (
 						<span className={selected ? '' : 'text-gray-400'}>
-							{selected || placeholder}
+							{optionMetaMap[selected]?.label || placeholder}
 						</span>
 					)}
 					<span className='ml-2'>
@@ -229,7 +204,6 @@ const Select = forwardRef(
 								onSelect: handleSelect,
 								selected,
 								multiple,
-								onMeta: collectOptionMeta,
 							})
 						)}
 					</div>
@@ -239,7 +213,18 @@ const Select = forwardRef(
 	}
 )
 
-export default Select
+function extractLabel(labelNode) {
+	if (typeof labelNode === 'string') return labelNode
+	if (Array.isArray(labelNode))
+		return labelNode.find(c => typeof c === 'string') || ''
+	if (labelNode?.props?.children) {
+		const children = labelNode.props.children
+		if (typeof children === 'string') return children
+		if (Array.isArray(children))
+			return children.find(c => typeof c === 'string') || ''
+	}
+	return ''
+}
 
 export const SelectOption = ({
 	children,
@@ -248,17 +233,10 @@ export const SelectOption = ({
 	selected,
 	multiple,
 	subOptions = [],
-	onMeta,
 }) => {
 	const isSelected = Array.isArray(selected)
 		? selected.includes(value)
 		: selected === value
-
-	useLayoutEffect(() => {
-		if (onMeta) {
-			onMeta(value, children, subOptions)
-		}
-	}, [value, children, subOptions])
 
 	const handleClick = () => {
 		onSelect(value, false)
@@ -321,3 +299,5 @@ export const SelectOption = ({
 		</div>
 	)
 }
+
+export default Select

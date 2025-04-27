@@ -10,7 +10,7 @@ import Input from '../ui/input'
 import Popover from '../ui/popover'
 
 import Link from 'next/link'
-import AddressAutocomplete from '../ui/addressAutoComplete'
+
 import Select, { SelectOption } from '../ui/select'
 import TextArea from '../ui/textArea'
 import { usePriceContext } from './MultiStepLayout'
@@ -28,11 +28,11 @@ const FirstStep = memo(() => {
 	const { setPrice } = usePriceContext()
 	const [services, setServices] = useState([])
 	const [selectedServices, setSelectedServices] = useState([])
-	const [promoCode, setPromoCode] = useState('')
 	const [availablePromoCodes, setAvailablePromoCodes] = useState([])
 	const [isAdditionalService, setIsAdditionalService] = useState(false)
 
 	const promoValues = watch('promocode')
+	const promoCode = watch('promocode')
 	const isAdditionalServiceChecked = watch('additionalService')
 	const additionalService = ['Wymiana i wyważanie kół', 'Wymiana oleju']
 
@@ -52,9 +52,24 @@ const FirstStep = memo(() => {
 	}
 
 	useEffect(() => {
-		if (!watchedServiceNames || !services.prices) return
+		if (!watchedServiceNames?.length || !services?.prices?.length) return
 
-		setPromoCode(promoValues)
+		// Только если есть совпадения по id
+		const validSelectedServices = watchedServiceNames.filter(name => {
+			const allServices = [
+				...(services.prices || []).map(s => s.name),
+				...(services.prices || []).flatMap(
+					s => s.additionalServices?.map(sub => sub.name) || []
+				),
+			]
+			return allServices.includes(name)
+		})
+
+		if (validSelectedServices.length !== watchedServiceNames.length) {
+			// Если в services нет таких имен => не трогаем!
+			return
+		}
+
 		setSelectedServices(watchedServiceNames)
 
 		const hasExtra = additionalService.some(item =>
@@ -78,6 +93,19 @@ const FirstStep = memo(() => {
 			])
 			setServices(services)
 			setAvailablePromoCodes(promoCodes)
+
+			// ⏺️ После загрузки данных – пересчитываем цену!
+			const selectedNames = getValues('serviceName') || []
+			const promocodeValue = getValues('promocode') || ''
+
+			const recalculatedPrice = calculateTotalPrice(
+				selectedNames,
+				services.prices,
+				promocodeValue,
+				promoCodes.promocodes
+			)
+
+			setPrice(recalculatedPrice)
 		}
 		loadServicesAndPromoCodes()
 	}, [])
@@ -89,7 +117,7 @@ const FirstStep = memo(() => {
 			promoCode,
 			availablePromoCodes.promocodes
 		)
-	}, [selectedServices, promoCode, availablePromoCodes])
+	}, [selectedServices, promoCode, availablePromoCodes, services.prices])
 
 	useEffect(() => {
 		setPrice(totalPriceMemo)
@@ -218,9 +246,6 @@ const FirstStep = memo(() => {
 				<Input
 					{...register('promocode')}
 					placeholder='Promocode'
-					onChange={val => {
-						setPromoCode(val.target.value) // ✅ Обновляет `useState`
-					}}
 					suffix={
 						totalPriceMemo.isDiscountApplied ? (
 							<SuccessCircleIcon className='w-6 h-6' />

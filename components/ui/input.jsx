@@ -13,38 +13,12 @@ const Input = forwardRef(
 			suffix,
 			type = 'text',
 			className = '',
-			onChange,
-			autoComplete,
+			error = null,
 			...rest
 		},
 		ref
 	) => {
-		const form = useFormContext()
-		const isFormContextAvailable = !!form // ✅ Проверяем, есть ли контекст
-
-		// ✅ Если форма доступна, используем её методы
-		const { register, watch, formState, setValue } = isFormContextAvailable
-			? form
-			: {
-					register: () => {},
-					watch: () => {},
-					formState: { errors: {} },
-					setValue: () => {},
-			  }
-
-		const errors = formState.errors
-		const value = watch(name) || ''
-
-		const handleChange = e => {
-			if (!e || !e.target) return
-			let newValue = e.target.value || ''
-			if (isFormContextAvailable) {
-				setValue(name, newValue) // ✅ Если есть форма, обновляем значение в react-hook-form
-			}
-			onChange?.(e) // ✅ Вызываем `onChange`, если он передан
-		}
-
-		const hasError = errors?.[name] || null
+		const hasError = error || null
 
 		return (
 			<div className='relative w-full'>
@@ -60,15 +34,13 @@ const Input = forwardRef(
 					{prefix && <span className='ml-2 text-gray-500'>{prefix}</span>}
 
 					<input
-						{...(isFormContextAvailable ? register(name) : {})} // ✅ Регистрируем только если есть форма
 						ref={ref}
+						name={name}
 						type={type}
 						className='flex-1 outline-none bg-transparent w-full'
-						placeholder={value ? '' : placeholder}
+						placeholder={placeholder}
 						disabled={disabled}
-						value={value}
-						onChange={handleChange}
-						autoComplete={autoComplete}
+						autoComplete='off'
 						{...rest}
 					/>
 
@@ -77,8 +49,8 @@ const Input = forwardRef(
 							<button
 								type='button'
 								onMouseDown={e => {
-									e.preventDefault() // 💡 Блокируем фокусировку
-									e.stopPropagation() // 💡 На всякий случай
+									e.preventDefault()
+									e.stopPropagation()
 								}}
 							>
 								<ErrorIcon className='w-5 h-5' />

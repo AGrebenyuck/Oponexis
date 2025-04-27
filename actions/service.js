@@ -21,3 +21,23 @@ export async function getServices() {
 		return {}
 	}
 }
+
+export async function updateServices(data) {
+	const response = await fetch(`${process.env.URL}/api/services`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({
+			created: data.created,
+			updated: data.updated,
+			deleted: data.deleted,
+		}),
+	})
+
+	if (!response.ok) {
+		throw new Error('Ошибка обновления услуг')
+	}
+
+	return response.json()
+}

@@ -20,7 +20,9 @@ export async function createReservation(bookingData) {
 			idUser = await db.user.findUnique({
 				where: { clerkUserId: user.userId },
 			})
-			if (idUser.phone === null) {
+			if (idUser.role === 'admin') {
+				idUser = await createUser(bookingData)
+			} else if (idUser.phone === null) {
 				await db.user.update({
 					where: { clerkUserId: user.userId },
 					data: {
@@ -48,8 +50,9 @@ export async function createReservation(bookingData) {
 
 		if (deal.status === 'success') {
 			createZadarmaTask(bookingData, idUser.zadarmaId, deal?.data?.id)
+		} else if (deal.status === 'error') {
+			throw new Error('Failed create deal')
 		}
-
 		const booking = await db.reservation.create({
 			data: {
 				userId: idUser.id,
@@ -71,7 +74,6 @@ export async function createReservation(bookingData) {
 				})),
 			})
 		}
-
 		const updatedBooking = await db.reservation.findUnique({
 			where: { id: booking.id },
 			include: { services: true }, // Подключаем связанные услуги

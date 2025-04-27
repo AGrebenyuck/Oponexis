@@ -16,7 +16,7 @@ const UserMenu = ({ role }) => {
 			<UserButton.MenuItems>
 				{role === 'admin' && (
 					<UserButton.Link
-						label='Availability'
+						label='Panel'
 						labelIcon={<ChartNoAxesGantt size={15} />}
 						href='/availability'
 					/>

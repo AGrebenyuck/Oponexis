@@ -6,8 +6,10 @@ import { createZadarmaCustomer } from './zadarma'
 export async function createUser(data) {
 	try {
 		// Проверяем, есть ли пользователь с таким email
-		const existingUser = await db.user.findUnique({
-			where: { email: data.email },
+		const existingUser = await db.user.findFirst({
+			where: {
+				OR: [{ email: data.email }, { phone: data.phone }],
+			},
 		})
 
 		if (existingUser) {
@@ -16,20 +18,27 @@ export async function createUser(data) {
 
 		const dataCustomer = {
 			name: data.name,
-			email: data.email,
+			email: data.email || '',
 			phone: data.phone,
 		}
 
 		const customer = await createZadarmaCustomer(dataCustomer)
 
+		const dataUser = {
+			phone: data.phone,
+			name: data.name,
+			zadarmaId: customer.data.id,
+		}
+
+		if (data.email) {
+			dataUser.email = data.email
+			dataUser.username = data.name + '-' + data.email.split('@')[0]
+		} else {
+			dataUser.username = data.name + customer.data.id
+		}
+
 		const newUser = await db.user.create({
-			data: {
-				email: data.email,
-				phone: data.phone,
-				name: data.name,
-				username: data.name + '-' + data.email.split('@')[0],
-				zadarmaId: customer.data.id,
-			},
+			data: dataUser,
 		})
 
 		return newUser

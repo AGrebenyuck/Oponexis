@@ -58,7 +58,7 @@ const MultiStepLayout = () => {
 
 	useEffect(() => {
 		if (!isRestored) return // ⛔ Пока данные не восстановлены — ничего не сохраняем
-		localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formValues))
+		localStorage?.setItem(FORM_STORAGE_KEY, JSON.stringify(formValues))
 	}, [formValues, isRestored])
 
 	const {
@@ -128,7 +128,7 @@ const MultiStepLayout = () => {
 
 		// Открываем модальное окно
 		setModalVisible(true)
-		localStorage.removeItem(FORM_STORAGE_KEY)
+		localStorage?.removeItem(FORM_STORAGE_KEY)
 		reset()
 		setStep(1)
 	}

@@ -160,7 +160,7 @@ const FirstStep = memo(() => {
 							error={fieldState.error}
 							location={
 								getValues('location') ||
-								JSON.parse(localStorage.getItem('multiStepFormData'))?.location
+								JSON.parse(localStorage?.getItem('multiStepFormData'))?.location
 							}
 							setLocation={loc => {
 								setValue('location', loc)

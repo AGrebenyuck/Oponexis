@@ -152,37 +152,34 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 	const availability = await getAvailability()
 	const bookedSlots = await getBookingForDate(date)
 
-	// ✅ Определяем день недели
-	const dayOfWeek = DateTime.fromJSDate(date, { zone: TIMEZONE })
-		.toFormat('EEEE')
-		.toLowerCase()
+	// ✅ Универсальное преобразование даты
+	const dateObj =
+		typeof date === 'string'
+			? DateTime.fromISO(date, { zone: TIMEZONE })
+			: DateTime.fromJSDate(date, { zone: TIMEZONE })
+
+	const dayOfWeek = dateObj.toFormat('EEEE').toLowerCase()
 	const dayAvailability = availability[dayOfWeek]
 
-	// ✅ Если день недоступен — сразу выходим
 	if (!dayAvailability?.isAvailable) return []
 
 	const { startTime: open, endTime: close } = dayAvailability
-	const timeGap = availability.timeGap || step // 🔹 Используем `timeGap`, если он указан
+	const timeGap = availability.timeGap || step
 
-	// ✅ Функция округления вверх к ближайшему `timeGap`
 	const roundUpToGap = (time, gap) => {
-		const minutes = time.minute
-		const remainder = minutes % gap
-		return remainder === 0 ? time : time.plus({ minutes: gap - remainder }) // Округляем вверх
+		const remainder = time.minute % gap
+		return remainder === 0 ? time : time.plus({ minutes: gap - remainder })
 	}
 
-	// ✅ Преобразуем рабочие часы в `DateTime`
-	const openDT = DateTime.fromJSDate(new Date(date), { zone: TIMEZONE }).set({
+	const openDT = dateObj.set({
 		hour: Number(open.split(':')[0]),
 		minute: Number(open.split(':')[1]),
 	})
-
-	const closeDT = DateTime.fromJSDate(new Date(date), { zone: TIMEZONE }).set({
+	const closeDT = dateObj.set({
 		hour: Number(close.split(':')[0]),
 		minute: Number(close.split(':')[1]),
 	})
 
-	// ✅ Если бронирование на **сегодня**, учитываем `timeGap`
 	const now = DateTime.now().setZone(TIMEZONE)
 	let adjustedOpenDT = openDT
 
@@ -190,17 +187,17 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 		adjustedOpenDT = now.plus({ minutes: timeGap }).startOf('minute')
 	}
 
-	// ✅ Округляем `adjustedOpenDT` до ближайшего `timeGap`
 	adjustedOpenDT = roundUpToGap(adjustedOpenDT, timeGap)
 
-	// ✅ Создаём `Set` для хранения занятых минут
 	const bookedTimes = new Set()
-	const blockedEnds = new Set() // 🔹 Время, в которое нельзя заканчивать слоты
+	const blockedEnds = new Set()
 
 	bookedSlots.forEach(({ start, end }) => {
-		const day = DateTime.fromJSDate(date).toFormat('yyyy-MM-dd')
-		const startDT = DateTime.fromISO(`${day}T${start}:00`, { zone: TIMEZONE })
-		const endDT = DateTime.fromISO(`${day}T${end}:00`, { zone: TIMEZONE })
+		const dayStr = dateObj.toFormat('yyyy-MM-dd')
+		const startDT = DateTime.fromISO(`${dayStr}T${start}:00`, {
+			zone: TIMEZONE,
+		})
+		const endDT = DateTime.fromISO(`${dayStr}T${end}:00`, { zone: TIMEZONE })
 
 		for (
 			let t = timeToMinutes(startDT.toFormat('HH:mm'));
@@ -210,22 +207,16 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 			bookedTimes.add(t)
 		}
 
-		// ❌ Добавляем время окончания брони в `blockedEnds`
 		blockedEnds.add(timeToMinutes(endDT.toFormat('HH:mm')))
 	})
 
-	// ✅ Генерируем только свободные слоты с `timeGap`, но учитываем `duration`
 	const availableSlots = []
 	let currentSlot = adjustedOpenDT
 
 	while (currentSlot < closeDT) {
 		const slotStart = timeToMinutes(currentSlot.toFormat('HH:mm'))
-		const slotEnd = slotStart + duration // 🆕 Учитываем `duration`
+		const slotEnd = slotStart + duration
 
-		// ❌ Проверяем, что слот:
-		// - Не пересекается с забронированным временем
-		// - Не заканчивается в момент, когда заканчивается бронь
-		// - Хватает места для всей продолжительности услуги
 		let isSlotAvailable = true
 
 		for (let t = slotStart; t < slotEnd; t += timeGap) {
@@ -242,7 +233,6 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 			})
 		}
 
-		// Переходим к следующему слоту через `timeGap`
 		currentSlot = currentSlot.plus({ minutes: timeGap })
 	}
 

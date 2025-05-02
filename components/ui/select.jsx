@@ -256,7 +256,7 @@ export const SelectOption = ({
 	return (
 		<div className='w-full'>
 			<button
-				className={`py-2 px-6 w-full text-left cursor-pointer transition-all hover:bg-white hover:text-primary-blue rounded-3xl flex items-center gap-2 ${
+				className={`py-2 mt-1 px-6 w-full text-left cursor-pointer transition-all hover:bg-white hover:text-primary-blue rounded-3xl flex items-center gap-2 ${
 					isSelected ? 'bg-white text-primary-blue' : ''
 				}`}
 				onClick={handleClick}

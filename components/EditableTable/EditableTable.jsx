@@ -258,7 +258,7 @@ export default function EditableTable({
 			</div>
 
 			{onSave && (
-				<div className='text-center pt-4'>
+				<div className='text-center md:text-right pt-4'>
 					<button
 						onClick={async () => {
 							setSaving(true)

@@ -20,6 +20,7 @@ const Select = forwardRef(
 			value,
 			defaultValue = null,
 			multiple = false,
+			position = 'top',
 		},
 		ref
 	) => {
@@ -198,14 +199,20 @@ const Select = forwardRef(
 				</button>
 
 				{open && (
-					<div className='absolute bottom-full w-full mb-1 bg-primary-blue border lg:border-2 border-white rounded-xl lg:rounded-3xl shadow-lg p-3 flex flex-col items-start md:items-center gap-1 z-10 max-h-[300px] overflow-y-scroll'>
-						{Children.map(children, child =>
-							cloneElement(child, {
-								onSelect: handleSelect,
-								selected,
-								multiple,
-							})
-						)}
+					<div
+						className={`absolute ${
+							position === 'top' ? 'bottom-full' : 'top-[105%]'
+						} w-full mb-1 bg-primary-blue border lg:border-2 border-white rounded-xl lg:rounded-3xl shadow-lg p-3 flex flex-col items-start md:items-center gap-1 z-10 max-h-[300px] `}
+					>
+						<div className='overflow-y-auto scrollbar pr-1'>
+							{Children.map(children, child =>
+								cloneElement(child, {
+									onSelect: handleSelect,
+									selected,
+									multiple,
+								})
+							)}
+						</div>
 					</div>
 				)}
 			</div>

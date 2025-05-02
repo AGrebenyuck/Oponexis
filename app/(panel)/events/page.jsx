@@ -11,6 +11,8 @@ import Divider from '@/components/ui/divider'
 import Drawer from '@/components/ui/drawer'
 import message from '@/components/ui/message'
 import Segmented from '@/components/ui/segmented'
+import Spin from '@/components/ui/spin'
+import { DateTime } from 'luxon'
 import { useEffect, useState } from 'react'
 import EditReservationForm from './_components/editReservationForm'
 import ReservationCard from './_components/reservationCard'
@@ -22,12 +24,26 @@ const EventsPage = () => {
 	const [searchQuery, setSearchQuery] = useState('') // Фильтр по контакту
 	const [selectedReservation, setSelectedReservation] = useState(null)
 	const [isEditing, setIsEditing] = useState(false)
+	const [isLoading, setIsLoading] = useState(true)
 
 	const handleSave = async updatedData => {
+		const TIMEZONE = 'Europe/Warsaw'
+		const date = updatedData.date
+		const time = updatedData.time
+
+		const start = DateTime.fromISO(`${date}T${time}`, {
+			zone: TIMEZONE,
+		})
+		const end = start.plus({ minutes: updatedData.duration })
+
+		updatedData.startTime = start.toISO()
+		updatedData.endTime = end.toISO()
+
 		try {
 			const result = await updateReservation(updatedData)
 
 			if (result.success) {
+				message.success('Rezerwacja została zaktualizowana')
 				result.updatedReservation.startTime = new Date(
 					result.updatedReservation.startTime
 				)
@@ -52,9 +68,11 @@ const EventsPage = () => {
 				setSelectedReservation(null)
 			} else {
 				console.error('Ошибка обновления:', result.error)
+				message.error('Błąd: ' + result.error)
 			}
 		} catch (error) {
 			console.error('Ошибка при обновлении бронирования:', error)
+			message.error('Błąd podczas aktualizacji rezerwacji: ' + error)
 		}
 	}
 
@@ -64,8 +82,10 @@ const EventsPage = () => {
 
 			if (result.success) {
 				// Aktualizujemy lokalny stan, usuwając rezerwację
-				setReservations(prev => prev.filter(r => r.id !== id))
-				setFilteredReservations(prev => prev.filter(r => r.id !== id))
+				setReservations(prev => prev.filter(r => r.id !== id.reservationId))
+				setFilteredReservations(prev =>
+					prev.filter(r => r.id !== id.reservationId)
+				)
 				message.success('Rezerwacja zrezygnowana')
 			} else {
 				message.error(result.error)
@@ -79,6 +99,7 @@ const EventsPage = () => {
 	// Загружаем данные при переключении
 	useEffect(() => {
 		const fetchReservations = async () => {
+			setIsLoading(true)
 			const data =
 				viewMode === 'future'
 					? await getFutureReservations()
@@ -86,6 +107,7 @@ const EventsPage = () => {
 
 			setReservations(data.reservations)
 			setFilteredReservations(data.reservations)
+			setIsLoading(false)
 		}
 		fetchReservations()
 	}, [viewMode])
@@ -124,22 +146,32 @@ const EventsPage = () => {
 
 			{/* Список резерваций */}
 			<div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-				{filteredReservations ? (
-					filteredReservations?.map(reservation => (
+				{isLoading ? (
+					<div className='col-span-full flex justify-center py-12'>
+						<Spin size='large' />
+					</div>
+				) : filteredReservations.length > 0 ? (
+					filteredReservations.map(reservation => (
 						<ReservationCard
 							key={reservation.id}
 							{...reservation}
-							showActions={viewMode === 'future'} // Показываем кнопки только для будущих резерваций
+							showActions={viewMode === 'future'}
 							onEdit={() => {
 								setSelectedReservation(reservation)
 								setIsEditing(true)
 							}}
-							onDelete={() => handleDelete(reservation.id)}
-							past={viewMode === 'past' ? true : false}
+							onDelete={() =>
+								handleDelete({
+									reservationId: reservation.id,
+									zadarmaDealId: reservation.zadarmaDealId,
+									zadarmaTaskId: reservation.zadarmaTaskId,
+								})
+							}
+							past={viewMode === 'past'}
 						/>
 					))
 				) : (
-					<p>Loading...</p>
+					<p className='col-span-full text-center'>Brak rezerwacji</p>
 				)}
 			</div>
 
@@ -148,7 +180,7 @@ const EventsPage = () => {
 				<Drawer
 					visible={isEditing}
 					onClose={() => setIsEditing(false)}
-					title='Редактирование резервации'
+					title='Edycja rezerwacji'
 					width='max-w-[500px]'
 				>
 					<EditReservationForm

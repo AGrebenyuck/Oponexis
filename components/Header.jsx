@@ -16,7 +16,7 @@ const Header = memo(() => {
 
 	useEffect(() => {
 		const handleResize = () => {
-			setIsLargeScreen(window.innerWidth >= 1440)
+			setIsLargeScreen(window?.innerWidth >= 1440)
 		}
 		handleResize()
 		const fetchUser = async () => {

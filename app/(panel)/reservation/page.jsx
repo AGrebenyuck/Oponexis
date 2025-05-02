@@ -7,11 +7,13 @@ import {
 import { createReservation } from '@/actions/booking'
 import { getServices } from '@/actions/service'
 import { CalendarArrowLeft, CalendarArrowRight } from '@/components/Icons'
+import AddressInput from '@/components/ui/addressAutoComplete'
 import Button from '@/components/ui/button'
 import Divider from '@/components/ui/divider'
 import Input from '@/components/ui/input'
 import message from '@/components/ui/message'
 import Select, { SelectOption } from '@/components/ui/select'
+import Spin from '@/components/ui/spin'
 
 import TextArea from '@/components/ui/textArea'
 import { useCurrentCalls } from '@/hooks/useCurrentCalls'
@@ -47,6 +49,7 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 	const [availableDays, setAvailableDays] = useState([])
 	const [selectedDate, setSelectedDate] = useState(null)
 	const [selectedTime, setSelectedTime] = useState([])
+	const [loadDays, setLoadDays] = useState(false)
 	const serviceDuration = getValues('duration')
 
 	const date = watch('date')
@@ -75,10 +78,12 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 			block: 'start',
 		})
 		async function fetchAvailableDays() {
+			setLoadDays(true)
 			const availableDates = await getAvailableDaysForCalendar(new Date())
 			setAvailableDays(availableDates)
 			//setSelectedDate(date ? new Date(date) : availableDates[0])
 			//setSelectedTime(time)
+			setLoadDays(false)
 		}
 
 		fetchAvailableDays()
@@ -140,6 +145,7 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 	}
 
 	const {
+		loading: loadingReservation,
 		errorReservation,
 		data: dataFromFetch,
 		fn: fnCreateBooking,
@@ -168,9 +174,12 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 			services: data.service,
 			serviceNames: data.serviceName,
 			price: data.price.discountedTotal,
+			serviceNameIds: data.serviceNameIds ?? [],
 		}
 
 		const result = await fnCreateBooking(bookingData)
+
+		console.log(result)
 
 		if (result?.success) {
 			message.success('Rezerwacja została dokonana')
@@ -236,11 +245,21 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 				autoComplete='tel'
 				error={errors?.phone}
 			/>
-			<Input
-				{...register('address')}
-				placeholder='Adres'
-				autoComplete='street-address'
-				error={errors?.address}
+			<Controller
+				name='address'
+				control={control}
+				render={({ field, fieldState }) => (
+					<AddressInput
+						value={field.value}
+						onChange={field.onChange}
+						onBlur={field.onBlur}
+						error={fieldState.error}
+						location={getValues('location') || null}
+						setLocation={loc => {
+							setValue('location', loc)
+						}}
+					/>
+				)}
 			/>
 			{/* Услуги */}
 			<Controller
@@ -283,21 +302,25 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 								setSelectedServices(selectedNames)
 							}}
 						>
-							{services.prices?.map(service => (
-								<SelectOption
-									key={service.id}
-									value={service.id}
-									subOptions={
-										service.additionalServices?.map(sub => ({
-											value: sub.id,
-											label: sub.name,
-											price: sub.price,
-										})) || []
-									}
-								>
-									{service.name} - {service.price} PLN
-								</SelectOption>
-							))}
+							{services.prices ? (
+								services.prices?.map(service => (
+									<SelectOption
+										key={service.id}
+										value={service.id}
+										subOptions={
+											service.additionalServices?.map(sub => ({
+												value: sub.id,
+												label: sub.name,
+												price: sub.price,
+											})) || []
+										}
+									>
+										{service.name} - {service.price} PLN
+									</SelectOption>
+								))
+							) : (
+								<Spin />
+							)}
 						</Select>
 					)
 				}}
@@ -310,47 +333,53 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 				id='secondStepForm'
 				className='flex flex-col md:flex-row gap-9 lg:gap-12'
 			>
-				<DayPicker
-					mode='single'
-					weekStartsOn={1}
-					locale={pl}
-					modifiers={{
-						available: availableDays,
-					}}
-					modifiersClassNames={{
-						available: 'bg-white text-primary-blue rounded-full opacity-85',
-					}}
-					classNames={{
-						root: 'relative md:flex-shrink-0',
-						month_caption:
-							'capitalize text-base lg:text-3xl font-semibold mb-5 lg:mb-11',
-						day: 'font-semibold w-[35px] h-[35px] md:w-[55px] md:h-[55px] lg:w-[75px] lg:h-[75px]',
-						month_grid: 'w-full border-separate border-spacing-1',
-						months: 'w-full',
-						weekdays: 'text-center',
-						day_button: 'flex justify-center items-center w-full h-full',
-						today: '!text-accent-blue',
-						nav: `${
-							getDefaultClassNames().nav
-						} max-w-[67px] lg:max-w-[162px] w-full justify-between`,
-						selected: '!opacity-100 !bg-accent-blue !text-white',
-					}}
-					components={{
-						Chevron: ({ orientation, ...chevronProps }) => {
-							switch (orientation) {
-								case 'right':
-									return (
-										<CalendarArrowRight className='w-2 h-4 lg:w-4 lg:h-7' />
-									)
-								case 'left':
-									return <CalendarArrowLeft className='w-2 h-4 lg:w-4 lg:h-7' />
-							}
-						},
-					}}
-					selected={selectedDate}
-					onSelect={setSelectedDate}
-					disabled={[{ before: new Date() }]}
-				/>
+				<div className='md:flex-shrink-0'>
+					<Spin spinning={loadDays}>
+						<DayPicker
+							mode='single'
+							weekStartsOn={1}
+							locale={pl}
+							modifiers={{
+								available: availableDays,
+							}}
+							modifiersClassNames={{
+								available: 'bg-white text-primary-blue rounded-full opacity-85',
+							}}
+							classNames={{
+								root: 'relative md:flex-shrink-0',
+								month_caption:
+									'capitalize text-base lg:text-3xl font-semibold mb-5 lg:mb-11',
+								day: 'font-semibold w-[35px] h-[35px] md:w-[55px] md:h-[55px] lg:w-[75px] lg:h-[75px]',
+								month_grid: 'w-full border-separate border-spacing-1',
+								months: 'w-full',
+								weekdays: 'text-center',
+								day_button: 'flex justify-center items-center w-full h-full',
+								today: '!text-accent-blue',
+								nav: `${
+									getDefaultClassNames().nav
+								} max-w-[67px] lg:max-w-[162px] w-full justify-between`,
+								selected: '!opacity-100 !bg-accent-blue !text-white',
+							}}
+							components={{
+								Chevron: ({ orientation, ...chevronProps }) => {
+									switch (orientation) {
+										case 'right':
+											return (
+												<CalendarArrowRight className='w-2 h-4 lg:w-4 lg:h-7' />
+											)
+										case 'left':
+											return (
+												<CalendarArrowLeft className='w-2 h-4 lg:w-4 lg:h-7' />
+											)
+									}
+								},
+							}}
+							selected={selectedDate}
+							onSelect={setSelectedDate}
+							disabled={[{ before: new Date() }]}
+						/>
+					</Spin>
+				</div>
 				<div id='timeForm'>
 					{loading ? (
 						<p>Loading...</p>
@@ -400,8 +429,9 @@ const AdminReservationForm = ({ allServices, onSubmit }) => {
 				onClick={handleSubmit(onFormSubmit, errors => {
 					console.log('❌ Ошибки формы:', errors)
 				})}
+				disabled={loadingReservation}
 			>
-				Dodaj rezerwację
+				{loadingReservation ? 'Rezerwacja...' : 'Dodaj rezerwację'}
 			</Button>
 		</form>
 	)

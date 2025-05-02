@@ -11,6 +11,7 @@ import Popover from '../ui/popover'
 
 import Link from 'next/link'
 
+import AddressInput from '../ui/addressAutoComplete'
 import Select, { SelectOption } from '../ui/select'
 import TextArea from '../ui/textArea'
 import { usePriceContext } from './MultiStepLayout'
@@ -127,24 +128,45 @@ const FirstStep = memo(() => {
 		<>
 			<div className='flex flex-col gap-3 lg:gap-11'>
 				{/* <AddressAutocomplete /> */}
-				<Input {...register('name')} placeholder='Imię' autoComplete='name' />
+				<Input
+					{...register('name')}
+					placeholder='Imię'
+					autoComplete='name'
+					error={errors.name}
+				/>
 				<Input
 					{...register('phone')}
 					type='tel'
 					placeholder='Telefon'
 					autoComplete='tel'
 					onChange={e => setValue('phone', e.target.value)}
+					error={errors.phone}
 				/>
 				<Input
 					{...register('email')}
 					type='email'
 					placeholder='Email'
 					autoComplete='email'
+					error={errors.email}
 				/>
-				<Input
-					{...register('address')}
-					placeholder='Adres'
-					autoComplete='street-address'
+				<Controller
+					name='address'
+					control={control}
+					render={({ field, fieldState }) => (
+						<AddressInput
+							value={field.value}
+							onChange={field.onChange}
+							onBlur={field.onBlur}
+							error={fieldState.error}
+							location={
+								getValues('location') ||
+								JSON.parse(localStorage.getItem('multiStepFormData'))?.location
+							}
+							setLocation={loc => {
+								setValue('location', loc)
+							}}
+						/>
+					)}
 				/>
 				<Controller
 					name='service'
@@ -239,7 +261,12 @@ const FirstStep = memo(() => {
 							</Popover>
 						</div>
 						{isAdditionalServiceChecked && (
-							<Input {...register('vin')} type='text' placeholder='Vin Numer' />
+							<Input
+								{...register('vin')}
+								error={errors.vin}
+								type='text'
+								placeholder='Vin Numer'
+							/>
 						)}
 					</>
 				)}

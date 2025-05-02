@@ -1,5 +1,8 @@
+'use client'
+
 import { AnimatePresence, motion } from 'framer-motion'
-import React from 'react'
+import React, { useState } from 'react'
+import Spin from '../ui/spin'
 import EditableCell from './EditableCell'
 
 export default function EditableTable({
@@ -14,7 +17,9 @@ export default function EditableTable({
 	renderSubRows,
 	showActions = true,
 	showAddButton = true,
+	loading = false,
 }) {
+	const [saving, setSaving] = useState(false)
 	const handleChange = (rowIndex, field, value) => {
 		const updated = [...data]
 		updated[rowIndex] = {
@@ -65,6 +70,14 @@ export default function EditableTable({
 			],
 		}
 		onChange?.(updated)
+	}
+
+	if (loading) {
+		return (
+			<div className='flex justify-center items-center min-h-[200px]'>
+				<Spin size='large' />
+			</div>
+		)
 	}
 
 	return (
@@ -247,15 +260,22 @@ export default function EditableTable({
 			{onSave && (
 				<div className='text-right pt-4'>
 					<button
-						onClick={() => onSave(data)}
-						disabled={!isDirty}
+						onClick={async () => {
+							setSaving(true)
+							try {
+								await onSave(data)
+							} finally {
+								setSaving(false)
+							}
+						}}
+						disabled={!isDirty || saving}
 						className={`px-6 py-2 rounded ${
-							isDirty
+							isDirty && !saving
 								? 'bg-green-600 hover:bg-green-700 text-white'
 								: 'bg-gray-300 text-gray-500 cursor-not-allowed'
 						}`}
 					>
-						Zapisz
+						{saving ? 'Zapisywanie...' : 'Zapisz'}
 					</button>
 				</div>
 			)}

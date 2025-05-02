@@ -39,6 +39,7 @@ const MultiStepLayout = () => {
 			serviceName: [],
 			service: [],
 			additionalService: false,
+			location: undefined,
 		},
 	})
 
@@ -84,7 +85,7 @@ const MultiStepLayout = () => {
 			email: data.email,
 			address: data.address,
 			service: data.service.length > 1 ? 'Zestaw' : data.serviceName[0],
-			comment: data.additionalInfo,
+			comment: data.comment,
 			contacts: `${data.name}, ${data.phone}, ${data.email}`,
 			promocode: data.promocode,
 			startTime: start.toISO(),
@@ -92,11 +93,14 @@ const MultiStepLayout = () => {
 			services: data.service,
 			serviceNames: data.serviceName,
 			isAdditionalService: data.additionalService,
+			serviceNameIds: data.serviceNameIds ?? [],
 			price:
 				price?.isDiscountApplied || price?.discountFromOriginal
 					? price?.discountedTotal.toFixed(2)
 					: price?.baseTotal,
 			vin: data.vin,
+			date: data.date,
+			time: data.time,
 		}
 
 		const result = await fnCreateBooking(bookingData)
@@ -104,19 +108,19 @@ const MultiStepLayout = () => {
 		if (result?.success) {
 			setResultStatus('success')
 			setResultMessage('Rezerwacja została pomyślnie utworzona.')
-			const sendMessage = async () => {
-				await fetch('/api/send-sms', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						number: '+48733315790',
-						message: `Nowa rezerwacja. Serwis:${
-							data.serviceName
-						}, Data: ${start.toFormat('dd-MM-yyyy HH:mm')} `,
-					}),
-				})
-			}
-			sendMessage()
+			// const sendMessage = async () => {
+			// 	await fetch('/api/send-sms', {
+			// 		method: 'POST',
+			// 		headers: { 'Content-Type': 'application/json' },
+			// 		body: JSON.stringify({
+			// 			number: '+48733315790',
+			// 			message: `Nowa rezerwacja. Serwis:${
+			// 				data.serviceName
+			// 			}, Data: ${start.toFormat('dd-MM-yyyy HH:mm')} `,
+			// 		}),
+			// 	})
+			// }
+			// sendMessage()
 		} else {
 			setResultStatus('error')
 			setResultMessage(result.error || 'Wystąpił błąd podczas rezerwacji.')

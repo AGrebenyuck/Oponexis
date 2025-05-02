@@ -1,3 +1,4 @@
+import { updateZadarmaDeal, updateZadarmaTask } from '@/actions/zadarma'
 import { db } from '@/lib/prisma'
 
 export async function POST(req) {
@@ -9,13 +10,16 @@ export async function POST(req) {
 			const reservation = await prisma.reservation.update({
 				where: { id: data.id },
 				data: {
-					serviceName: data.serviceName,
+					serviceName: data.service,
 					address: data.address,
 					contactInfo: data.contactInfo,
 					startTime: new Date(`${data.date}T${data.time}:00`),
 					endTime: new Date(`${data.date}T${data.timeEnd}:00`),
+					serviceNameIds: data.serviceNameIds ?? [],
 				},
 			})
+
+			console.log(reservation)
 
 			// Удаляем старые услуги
 			await prisma.serviceReservation.deleteMany({
@@ -36,6 +40,64 @@ export async function POST(req) {
 				include: { services: true },
 			})
 		})
+
+		const NeedToCall = data.isAdditionalService ? ' | Zadzwoń' : ''
+
+		const deltaDescription = {
+			ops: [
+				{
+					attributes: {
+						bold: true,
+					},
+					insert: `Rezerwacja usługi:`,
+				},
+				{
+					insert: `${data.serviceName.join(', ')}\n`,
+				},
+				{
+					attributes: {
+						bold: true,
+					},
+					insert: `Kontakt:`,
+				},
+				{
+					insert: `${data.contactInfo}\n`,
+				},
+				{
+					attributes: {
+						bold: true,
+					},
+					insert: `Adres:`,
+				},
+				{ insert: `${data.address}\n` },
+				{
+					attributes: {
+						bold: true,
+					},
+					insert: `Dodatkowa Informacja:`,
+				},
+				{ insert: `${data.additionalInfo || data.comment}\n` },
+				data.isAdditionalService
+					? {
+							insert: 'Zadzwoń po dodatkowe usługi\n',
+					  }
+					: null,
+				data.vin ? { insert: `VIN: ${data.vin}\n` } : null,
+			].filter(Boolean),
+		}
+		const dataTask = {
+			title: `${data.service} | dealId:${data.zadarmaDealId} ${NeedToCall}`,
+			start: data.startTime,
+			end: data.endTime,
+			description: JSON.stringify(deltaDescription),
+		}
+		const dataDeal = {
+			title: data.service + ' ' + data.date + ' ' + data.time,
+			budget: data.price.discountedTotal,
+		}
+
+		await updateZadarmaDeal(data.zadarmaDealId, dataDeal)
+		await updateZadarmaTask(data.zadarmaTaskId, dataTask)
 
 		return new Response(JSON.stringify({ success: true, updatedReservation }), {
 			status: 200,

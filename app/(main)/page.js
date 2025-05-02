@@ -1,4 +1,3 @@
-import ContactsSection from '@/components/ContactsSection'
 import FAQSection from '@/components/FAQSection'
 import Hero from '@/components/Hero'
 import HowItWorksSection from '@/components/HowItWorksSection'
@@ -9,7 +8,7 @@ import TestimonialsSection from '@/components/TestimonialsSection'
 
 export default function Home() {
 	return (
-		<div className=''>
+		<>
 			<Hero />
 			<OffersSection />
 			<HowItWorksSection />
@@ -17,6 +16,6 @@ export default function Home() {
 			<ReservationSection />
 			<TestimonialsSection />
 			<FAQSection />
-		</div>
+		</>
 	)
 }

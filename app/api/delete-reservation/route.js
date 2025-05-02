@@ -1,14 +1,16 @@
+import { deleteZadarmaDeal, deleteZadarmaEvent } from '@/actions/zadarma'
 import { db } from '@/lib/prisma'
 
 export async function DELETE(req) {
 	try {
-		const { id } = await req.json()
-
-		console.log(id)
+		const { reservationId, zadarmaDealId, zadarmaTaskId } = await req.json()
 
 		await db.reservation.delete({
-			where: { id },
+			where: { id: reservationId },
 		})
+
+		await deleteZadarmaDeal(zadarmaDealId)
+		await deleteZadarmaEvent(zadarmaTaskId)
 
 		return new Response(JSON.stringify({ success: true }), {
 			status: 200,

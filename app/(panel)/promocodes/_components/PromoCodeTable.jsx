@@ -3,6 +3,7 @@
 import { getPromoCodes, updatePromoCodes } from '@/actions/promocode'
 import EditableTable from '@/components/EditableTable/EditableTable'
 import message from '@/components/ui/message'
+import Spin from '@/components/ui/spin'
 import { useEffect, useState } from 'react'
 
 export default function PromoCodeTable() {
@@ -32,47 +33,55 @@ export default function PromoCodeTable() {
 	}
 
 	return (
-		<EditableTable
-			title='Promokody'
-			data={promoCodes}
-			onChange={data => {
-				setPromoCodes(data)
-				setIsDirty(true)
-			}}
-			onSave={handleSave}
-			isDirty={isDirty}
-			columns={[
-				{ title: 'Kod', dataIndex: 'code' },
-				{
-					title: 'Typ zniżki',
-					dataIndex: 'type',
-					render: (value, row, rowIndex) => (
-						<select
-							className='bg-transparent text-primary-blue md:text-white border rounded p-1 w-full'
-							value={value}
-							onChange={e => {
-								const newData = [...promoCodes]
-								newData[rowIndex].type = e.target.value
-								setPromoCodes(newData)
-								setIsDirty(true)
-							}}
-						>
-							<option value='percentage'>Procentowa</option>
-							<option value='fixed'>Stała kwota</option>
-						</select>
-					),
-				},
-				{ title: 'Wartość zniżki', dataIndex: 'value', type: 'number' },
-				{ title: 'Użycia', dataIndex: 'uses', editable: false },
-			]}
-			getNewItem={() => ({
-				id: `p-${Date.now()}`,
-				code: '',
-				type: 'percentage',
-				value: 0,
-				uses: 0,
-			})}
-		/>
+		<>
+			{promoCodes.length === 0 ? (
+				<div className='flex justify-center items-center min-h-[200px]'>
+					<Spin size='large' />
+				</div>
+			) : (
+				<EditableTable
+					title='Promokody'
+					data={promoCodes}
+					onChange={data => {
+						setPromoCodes(data)
+						setIsDirty(true)
+					}}
+					onSave={handleSave}
+					isDirty={isDirty}
+					columns={[
+						{ title: 'Kod', dataIndex: 'code' },
+						{
+							title: 'Typ zniżki',
+							dataIndex: 'type',
+							render: (value, row, rowIndex) => (
+								<select
+									className='bg-transparent text-primary-blue md:text-white border rounded p-1 w-full'
+									value={value}
+									onChange={e => {
+										const newData = [...promoCodes]
+										newData[rowIndex].type = e.target.value
+										setPromoCodes(newData)
+										setIsDirty(true)
+									}}
+								>
+									<option value='percentage'>Procentowa</option>
+									<option value='fixed'>Stała kwota</option>
+								</select>
+							),
+						},
+						{ title: 'Wartość zniżki', dataIndex: 'value', type: 'number' },
+						{ title: 'Użycia', dataIndex: 'uses', editable: false },
+					]}
+					getNewItem={() => ({
+						id: `p-${Date.now()}`,
+						code: '',
+						type: 'percentage',
+						value: 0,
+						uses: 0,
+					})}
+				/>
+			)}
+		</>
 	)
 }
 

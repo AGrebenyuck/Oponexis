@@ -144,9 +144,8 @@ export default function RootLayout({ children }) {
 				<body
 					className={`${montserratRegular.variable} ${NunitoFont.variable} antialiased text-sm sm:text-xl lg:text-2xl 3xl:text-3xl font-normal overflow-x-clip`}
 				>
-					<Header />
 					<main>{children}</main>
-					<ContactsSection />
+
 					<Analytics />
 					<SpeedInsights />
 				</body>

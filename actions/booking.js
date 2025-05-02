@@ -14,76 +14,105 @@ const TIMEZONE = 'Europe/Warsaw'
 
 export async function createReservation(bookingData) {
 	try {
-		const user = await auth()
-		let idUser = null
-		if (user.userId !== null) {
-			idUser = await db.user.findUnique({
-				where: { clerkUserId: user.userId },
-			})
-			if (idUser.role === 'admin') {
-				idUser = await createUser(bookingData)
-			} else if (idUser.phone === null) {
-				await db.user.update({
-					where: { clerkUserId: user.userId },
-					data: {
-						phone: bookingData.phone,
-					},
-				})
+		const authResult = await auth()
+		let userRecord = null
 
-				updateZadarmaCustomer({
-					id: idUser.zadarmaId,
-					phone: bookingData.phone,
-					name: idUser.name,
-				})
+		// 1. Если пользователь залогинен — ищем в БД
+		if (authResult?.userId) {
+			const existingUser = await db.user.findUnique({
+				where: { clerkUserId: authResult.userId },
+			})
+
+			if (!existingUser) {
+				throw new Error('❌ Пользователь авторизован, но не найден в БД')
+			}
+
+			// 2. Если админ — создаём отдельного клиента под резервацию
+			if (existingUser.role === 'admin') {
+				userRecord = await createUser(bookingData)
+			} else {
+				// 3. Если у пользователя нет номера — обновим
+				if (!existingUser.phone) {
+					await db.user.update({
+						where: { clerkUserId: authResult.userId },
+						data: { phone: bookingData.phone },
+					})
+
+					await updateZadarmaCustomer({
+						id: existingUser.zadarmaId,
+						name: existingUser.name,
+						phone: bookingData.phone,
+					})
+				}
+				userRecord = existingUser
 			}
 		} else {
-			idUser = await createUser(bookingData)
+			// 4. Неавторизованный пользователь
+			userRecord = await createUser(bookingData)
 		}
 
-		const dealData = {
-			title: bookingData.service,
+		if (!userRecord || !userRecord.zadarmaId) {
+			throw new Error('❌ Ошибка: не удалось получить zadarmaId пользователя')
+		}
+
+		// 5. Создание сделки
+		const deal = await createZadarmaDeal({
+			title:
+				bookingData.service + ' ' + bookingData.date + ' ' + bookingData.time,
 			budget: bookingData.price,
-			customer_id: idUser.zadarmaId,
+			customer_id: userRecord.zadarmaId,
+		})
+
+		if (!deal.id) {
+			throw new Error('❌ Не удалось создать сделку в Zadarma')
 		}
 
-		const deal = await createZadarmaDeal(dealData)
+		// 6. Создание задачи
+		const task = await createZadarmaTask(
+			bookingData,
+			userRecord.zadarmaId,
+			deal.id
+		)
 
-		if (deal.status === 'success') {
-			createZadarmaTask(bookingData, idUser.zadarmaId, deal?.data?.id)
-		} else if (deal.status === 'error') {
-			throw new Error('Failed create deal')
-		}
+		// 7. Сохраняем резервацию
 		const booking = await db.reservation.create({
 			data: {
-				userId: idUser.id,
+				userId: userRecord.id,
 				address: bookingData.address,
 				serviceName: bookingData.service,
 				additionalInfo: bookingData.comment,
 				contactInfo: bookingData.contacts,
 				promoCode: bookingData.promocode,
 				startTime: bookingData.startTime,
+				zadarmaDealId: deal.id.toString(),
+				zadarmaTaskId: task.data.id.toString(),
 				endTime: bookingData.endTime,
+				serviceNameIds: bookingData.serviceNameIds ?? [],
 			},
 		})
 
+		// 8. Привязываем услуги
 		if (bookingData.services?.length > 0) {
 			await db.serviceReservation.createMany({
 				data: bookingData.services.map(service => ({
 					reservationId: booking.id,
-					serviceId: service, // Должен быть id из таблицы `Service`
+					serviceId: service,
 				})),
 			})
 		}
+
 		const updatedBooking = await db.reservation.findUnique({
 			where: { id: booking.id },
-			include: { services: true }, // Подключаем связанные услуги
+			include: { services: true },
 		})
 
 		return { success: true, updatedBooking }
 	} catch (error) {
-		console.log(error.message)
-
-		return { success: false, error: error.message }
+		console.error('❌ Ошибка createReservation:', error)
+		return {
+			success: false,
+			error: error.message || 'Unknown error in createReservation',
+		}
 	}
 }
 
@@ -267,7 +296,11 @@ export const deleteReservation = async id => {
 			headers: {
 				'Content-Type': 'application/json',
 			},
-			body: JSON.stringify({ id }),
+			body: JSON.stringify({
+				reservationId: id.reservationId,
+				zadarmaDealId: id.zadarmaDealId,
+				zadarmaTaskId: id.zadarmaTaskId,
+			}),
 		})
 
 		if (!response.ok) {

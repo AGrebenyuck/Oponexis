@@ -15,19 +15,29 @@ const ReservationCard = ({
 	contactInfo: contact,
 	address,
 	promoCode,
-	comment,
+	additionalInfo,
 	status = 'pending',
 	past = false, // 🟢 Указывает, что резервация прошлая
 	onEdit,
 	onDelete,
 }) => {
 	const [showForm, setShowForm] = useState(false)
+	const [isDeleting, setIsDeleting] = useState(false)
 	const { control, handleSubmit, setValue, reset } = useForm({
 		defaultValues: {
 			rating: 5,
 			text: '',
 		},
 	})
+
+	const handleDelete = async () => {
+		setIsDeleting(true)
+		try {
+			await onDelete?.()
+		} catch (error) {
+			console.error('❌ Błąd podczas usuwania:', error)
+		}
+	}
 
 	const handleSaveComment = data => {
 		const commentData = {
@@ -111,12 +121,12 @@ const ReservationCard = ({
 					</div>
 				)}
 
-				{comment && (
+				{additionalInfo && (
 					<div>
 						<p className='text-sm text-gray-500 dark:text-gray-400'>
 							Komentarz:
 						</p>
-						<p className='text-md font-medium'>{comment}</p>
+						<p className='text-md font-medium'>{additionalInfo}</p>
 					</div>
 				)}
 			</div>
@@ -204,10 +214,13 @@ const ReservationCard = ({
 							confirm
 							placement='top'
 							autoShift
-							onConfirm={onDelete}
+							onConfirm={handleDelete}
 						>
-							<button className='px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600'>
-								Anulować
+							<button
+								disabled={isDeleting}
+								className='px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600 disabled:opacity-60'
+							>
+								{isDeleting ? 'Anulowanie...' : 'Anulować'}
 							</button>
 						</Popover>
 					</div>

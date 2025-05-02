@@ -23,7 +23,7 @@ const Popover = ({
 	placement = 'top',
 	open: controlledOpen,
 	onOpenChange,
-	popconfirm = false,
+	confirm = false,
 	title,
 	description,
 	onConfirm,
@@ -155,7 +155,7 @@ const Popover = ({
 							/>
 						)}
 
-						{popconfirm ? (
+						{confirm ? (
 							<>
 								<div className='font-medium text-gray-900 mb-1'>{title}</div>
 								{description && (

@@ -5,44 +5,41 @@ import { createZadarmaCustomer } from './zadarma'
 
 export async function createUser(data) {
 	try {
-		// Проверяем, есть ли пользователь с таким email
+		if (!data.name || !data.phone) {
+			throw new Error('❌ createUser: Name and phone are required')
+		}
+
 		const existingUser = await db.user.findFirst({
 			where: {
 				OR: [{ email: data.email }, { phone: data.phone }],
 			},
 		})
 
-		if (existingUser) {
-			return existingUser
-		}
+		if (existingUser) return existingUser
 
-		const dataCustomer = {
+		const customer = await createZadarmaCustomer({
 			name: data.name,
 			email: data.email || '',
 			phone: data.phone,
-		}
-
-		const customer = await createZadarmaCustomer(dataCustomer)
-
-		const dataUser = {
-			phone: data.phone,
-			name: data.name,
-			zadarmaId: customer.data.id,
-		}
-
-		if (data.email) {
-			dataUser.email = data.email
-			dataUser.username = data.name + '-' + data.email.split('@')[0]
-		} else {
-			dataUser.username = data.name + customer.data.id
-		}
-
-		const newUser = await db.user.create({
-			data: dataUser,
 		})
 
-		return newUser
+		if (!customer || customer.status !== 'success') {
+			throw new Error('❌ createUser: Failed to create customer in Zadarma')
+		}
+
+		const userPayload = {
+			name: data.name,
+			phone: data.phone,
+			zadarmaId: customer.data.id,
+			email: data.email || undefined,
+			username: data.email
+				? `${data.name}-${data.email.split('@')[0]}`
+				: `${data.name}-${customer.data.id}`,
+		}
+
+		return await db.user.create({ data: userPayload })
 	} catch (error) {
-		console.error(error)
+		console.error('❌ Ошибка в createUser:', error)
+		throw new Error(error.message || 'Unknown error in createUser')
 	}
 }

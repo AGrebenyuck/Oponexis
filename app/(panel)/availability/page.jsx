@@ -1,5 +1,6 @@
 'use client'
 import { getAvailability } from '@/actions/availability'
+import Spin from '@/components/ui/spin'
 import { useEffect, useState } from 'react'
 import AvailabilityForm from './_components/availability-form'
 import { defaultAvailability } from './data'

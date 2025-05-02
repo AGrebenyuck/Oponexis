@@ -1,3 +1,5 @@
+'use client'
+
 import { getPromoCodes } from '@/actions/promocode'
 import { getServices } from '@/actions/service'
 import { calculateTotalDuration, calculateTotalPrice } from '@/lib/calculating'
@@ -39,6 +41,17 @@ const FirstStep = memo(() => {
 
 	// 📌 Записываем в `useState` после рендера
 	const watchedServiceNames = useWatch({ name: 'serviceName' })
+
+	const [location, setlocation] = useState(null)
+
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			const val = JSON.parse(
+				localStorage?.getItem('multiStepFormData')
+			)?.location
+			setlocation(val)
+		}
+	}, [])
 
 	const privacyPolicy = () => {
 		return (
@@ -158,10 +171,7 @@ const FirstStep = memo(() => {
 							onChange={field.onChange}
 							onBlur={field.onBlur}
 							error={fieldState.error}
-							location={
-								getValues('location') ||
-								JSON.parse(localStorage?.getItem('multiStepFormData'))?.location
-							}
+							location={getValues('location') || location}
 							setLocation={loc => {
 								setValue('location', loc)
 							}}

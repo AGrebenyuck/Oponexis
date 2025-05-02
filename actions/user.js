@@ -1,5 +1,6 @@
 'use server'
 
+import { logError } from '@/lib/logError'
 import { db } from '@/lib/prisma'
 import { createZadarmaCustomer } from './zadarma'
 
@@ -15,7 +16,7 @@ export async function createUser(data) {
 			},
 		})
 
-		if (existingUser) return existingUser
+		if (existingUser && existingUser.role !== 'admin') return existingUser
 
 		const customer = await createZadarmaCustomer({
 			name: data.name,
@@ -30,16 +31,18 @@ export async function createUser(data) {
 		const userPayload = {
 			name: data.name,
 			phone: data.phone,
-			zadarmaId: customer.data.id,
+			zadarmaId: customer.data.id.toString(),
 			email: data.email || undefined,
 			username: data.email
 				? `${data.name}-${data.email.split('@')[0]}`
 				: `${data.name}-${customer.data.id}`,
 		}
 
-		return await db.user.create({ data: userPayload })
+		const response = await db.user.create({ data: userPayload })
+
+		return response
 	} catch (error) {
-		console.error('❌ Ошибка в createUser:', error)
-		throw new Error(error.message || 'Unknown error in createUser')
+		const msg = logError('Ошибка в createUser', error)
+		throw new Error(msg)
 	}
 }

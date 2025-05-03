@@ -50,22 +50,28 @@ const SecondStep = ({ nextStep }) => {
 	} = useFetch(generateAvailableSlots)
 
 	useEffect(() => {
-		if (!serviceDuration) return // ⛔ Не генерируем без продолжительности
-		if (!selectedDate) return
-		if (selectedDate && serviceDuration > 0) {
-			setValue('date', DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd'))
-			if (DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd') !== date) {
-				setValue('time', null)
-				setValue('timeEnd', null)
-				setSelectedTime('')
+		const delay = setTimeout(() => {
+			if (selectedDate && serviceDuration) {
+				setValue(
+					'date',
+					DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd')
+				)
+
+				if (DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd') !== date) {
+					setValue('time', null)
+					setValue('timeEnd', null)
+					setSelectedTime('')
+				}
+
+				fnGenerateAvailableSlots(selectedDate, serviceDuration)
 			}
-			console.log('⌛ Duration before generate:', serviceDuration)
-			fnGenerateAvailableSlots(selectedDate, serviceDuration)
-		}
+		}, 200) // 200 мс пауза, чтобы дать БД и SSR обновиться
+
 		document?.getElementById('timeForm')?.scrollIntoView({
 			behavior: 'smooth',
 			block: 'center',
 		})
+		return () => clearTimeout(delay)
 	}, [selectedDate, serviceDuration])
 
 	useEffect(() => {

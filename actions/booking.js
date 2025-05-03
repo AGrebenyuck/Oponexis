@@ -3,6 +3,7 @@
 import { db } from '@/lib/prisma'
 import { auth } from '@clerk/nextjs/server'
 import { DateTime } from 'luxon'
+import { noStore } from 'next/cache'
 import { createUser } from './user'
 import {
 	createZadarmaDeal,
@@ -217,6 +218,7 @@ export async function getBooking() {
 
 export async function getBookingForDate(date) {
 	try {
+		noStore()
 		// ✅ Преобразуем входную дату в `ISO` строку, если передан объект `Date`
 		const dateString =
 			typeof date === 'string' ? date : DateTime.fromJSDate(date).toISODate()

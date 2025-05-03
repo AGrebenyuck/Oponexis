@@ -2,7 +2,6 @@
 
 import { db } from '@/lib/prisma'
 import { DateTime } from 'luxon'
-import { getBookingForDate } from './booking'
 
 const TIMEZONE = 'Europe/Warsaw' // Часовой пояс по умолчанию
 
@@ -150,7 +149,17 @@ const minutesToTime = minutes => {
 
 export const generateAvailableSlots = async (date, duration, step = 30) => {
 	const availability = await getAvailability()
-	const bookedSlots = await getBookingForDate(date)
+	// ✅ Получаем бронирования через API, чтобы обойти кеш
+	const response = await fetch(`${process.env.URL}/api/get-booking-for-date`, {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify({ date }),
+		cache: 'no-store', // Дополнительно, чтобы точно не кешировалось
+	})
+
+	const bookedSlots = await response.json()
 
 	// ✅ Универсальное преобразование даты
 	const dateObj =

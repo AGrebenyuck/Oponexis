@@ -19,8 +19,6 @@ export async function POST(req) {
 				},
 			})
 
-			console.log(reservation)
-
 			// Удаляем старые услуги
 			await prisma.serviceReservation.deleteMany({
 				where: { reservationId: data.id },
@@ -76,10 +74,10 @@ export async function POST(req) {
 					},
 					insert: `Dodatkowa Informacja:`,
 				},
-				{ insert: `${data.additionalInfo || data.comment}\n` },
+				{ insert: `${data.additionalInfo || data.comment}` },
 				data.isAdditionalService
 					? {
-							insert: 'Zadzwoń po dodatkowe usługi\n',
+							insert: '\nZadzwoń po dodatkowe usługi\n',
 					  }
 					: null,
 				data.vin ? { insert: `VIN: ${data.vin}\n` } : null,

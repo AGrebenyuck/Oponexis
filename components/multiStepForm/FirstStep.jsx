@@ -3,7 +3,7 @@
 import { getPromoCodes } from '@/actions/promocode'
 import { getServices } from '@/actions/service'
 import { calculateTotalDuration, calculateTotalPrice } from '@/lib/calculating'
-import { memo, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useFormContext, useWatch } from 'react-hook-form'
 
 import { QuestionIcon, SuccessCircleIcon } from '../Icons'
@@ -18,7 +18,7 @@ import Select, { SelectOption } from '../ui/select'
 import TextArea from '../ui/textArea'
 import { usePriceContext } from './MultiStepLayout'
 
-const FirstStep = memo(() => {
+const FirstStep = () => {
 	const {
 		register,
 		control,
@@ -309,6 +309,6 @@ const FirstStep = memo(() => {
 			{errors.agree && <p className='text-red-500'>{errors.agree.message}</p>}
 		</>
 	)
-})
+}
 
 export default FirstStep

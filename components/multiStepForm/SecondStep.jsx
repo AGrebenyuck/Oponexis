@@ -19,7 +19,7 @@ const SecondStep = ({ nextStep }) => {
 	const [availableDays, setAvailableDays] = useState([])
 	const [selectedDate, setSelectedDate] = useState(null)
 	const [selectedTime, setSelectedTime] = useState([])
-	const serviceDuration = getValues('duration')
+	const serviceDuration = watch('duration')
 	const [loadDays, setLoadDays] = useState(false)
 
 	const date = watch('date')
@@ -50,7 +50,9 @@ const SecondStep = ({ nextStep }) => {
 	} = useFetch(generateAvailableSlots)
 
 	useEffect(() => {
-		if (selectedDate) {
+		if (!serviceDuration) return // ⛔ Не генерируем без продолжительности
+		if (!selectedDate) return
+		if (selectedDate && serviceDuration > 0) {
 			setValue('date', DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd'))
 			if (DateTime.fromJSDate(selectedDate).toFormat('yyyy-MM-dd') !== date) {
 				setValue('time', null)
@@ -71,7 +73,7 @@ const SecondStep = ({ nextStep }) => {
 			setValue('time', selectedTime[0])
 			setValue('timeEnd', selectedTime[1])
 		}
-	}, [selectedTime])
+	}, [selectedTime, serviceDuration])
 
 	return (
 		<div

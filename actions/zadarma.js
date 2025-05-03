@@ -336,32 +336,51 @@ export const updateZadarmaTask = async (eventId, updatedFields = {}) => {
 
 	const event = existing.data
 
-	// Сравниваем обычные поля
+	console.log('event.description')
+	console.log(event.description)
+
+	const oldSections = extractSectionsFromHtml(event.description)
+	const newSections = updatedFields.description
+		? extractSectionsFromDelta(updatedFields.description)
+		: {}
+
+	const mergedSections = { ...oldSections, ...newSections }
+
+	const mergedDescription = buildDeltaFromSections(mergedSections)
+
+	console.log('old section')
+	console.log(oldSections)
+	console.log('new section')
+	console.log(newSections)
+	console.log('mergedSections')
+	console.log(mergedSections)
+	console.log('mergedDescription')
+	console.log(mergedDescription)
+
 	const fieldsToUpdate = {
 		title: updatedFields.title ?? event.title,
 		start: updatedFields.start ?? event.start,
 		end: updatedFields.end ?? event.end,
-		description: updatedFields.description ?? event.description,
+		description: mergedDescription,
 		customers: [event.customers[0].id],
 		allDay: false,
 		responsible_user: 250485,
 	}
 
-	const descOld = normalizeDelta(event.description)
-	const descNew = normalizeDelta(updatedFields.description || event.description)
+	console.log('fieldsToUpdate')
+	console.log(fieldsToUpdate)
 
 	const isSame =
 		fieldsToUpdate.title === event.title &&
 		fieldsToUpdate.start === event.start &&
 		fieldsToUpdate.end === event.end &&
-		descOld === descNew
+		event.description.trim() === mergedDescription.trim()
 
 	if (isSame) {
 		console.log(`ℹ️ Event ${eventId} nie wymaga aktualizacji`)
 		return { success: true, skipped: true }
 	}
 
-	// Обновляем
 	const response = await api({
 		http_method: 'PUT',
 		api_method: `/v1/zcrm/events/${eventId}`,
@@ -377,6 +396,80 @@ export const updateZadarmaTask = async (eventId, updatedFields = {}) => {
 	}
 
 	return response
+}
+
+// 🔍 Вспомогательные функции
+function extractSectionsFromHtml(html) {
+	const sections = {}
+	const freeText = []
+
+	const extract = p => {
+		const text = p.textContent.trim()
+		if (!text) return
+
+		// Пытаемся найти `KEY: значение` даже без <strong>
+		const match = text.match(/^(.*?):\s*(.*)$/)
+		if (match) {
+			const key = match[1].trim()
+			const value = match[2].trim()
+			sections[key] = value
+		} else {
+			freeText.push(text)
+		}
+	}
+
+	if (typeof window === 'undefined') {
+		const { JSDOM } = require('jsdom')
+		const dom = new JSDOM(html)
+		dom.window.document.querySelectorAll('p').forEach(extract)
+	} else {
+		const parser = new DOMParser()
+		const doc = parser.parseFromString(html, 'text/html')
+		doc.querySelectorAll('p').forEach(extract)
+	}
+
+	if (freeText.length) {
+		sections['__freeText'] = freeText
+	}
+
+	return sections
+}
+
+function extractSectionsFromDelta(delta) {
+	const text = normalizeDelta(delta)
+	const lines = text.split('\n')
+	const sections = {}
+	let currentKey = null
+
+	lines.forEach(line => {
+		const match = line.match(/^(.*?):\s*(.*)$/)
+		if (match) {
+			currentKey = match[1].trim()
+			const value = match[2].trim()
+			sections[currentKey] = value
+		} else if (currentKey) {
+			sections[currentKey] += '\n' + line
+		}
+	})
+
+	return sections
+}
+
+function buildDeltaFromSections(sections) {
+	const ops = []
+
+	Object.entries(sections).forEach(([key, value]) => {
+		if (key) {
+			ops.push({ insert: key + ':', attributes: { bold: true } })
+		}
+		if (value) {
+			ops.push({ insert: value + '\n' })
+		} else {
+			ops.push({ insert: '\n' })
+		}
+	})
+
+	return JSON.stringify({ ops })
 }
 
 export const deleteZadarmaEvent = async eventId => {
@@ -421,7 +514,7 @@ export const deleteZadarmaDeal = async dealId => {
 
 export const getMember = async () => {
 	const info = await api({
-		api_method: '/v1/zcrm/users',
+		api_method: '/v1/zcrm/events/936190',
 	})
-	console.log('Ты авторизован как:', info.data)
+	return info
 }

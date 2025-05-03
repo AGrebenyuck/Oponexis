@@ -7,7 +7,6 @@ const ThirdStep = () => {
 	const { getValues } = useFormContext()
 	const info = getValues()
 	const price = usePriceContext()
-	console.log(price)
 
 	useEffect(() => {
 		document?.getElementById('formInfo')?.scrollIntoView({

@@ -59,21 +59,21 @@ const SecondStep = ({ nextStep }) => {
 				setValue('timeEnd', null)
 				setSelectedTime('')
 			}
-
+			console.log('⌛ Duration before generate:', serviceDuration)
 			fnGenerateAvailableSlots(selectedDate, serviceDuration)
 		}
 		document?.getElementById('timeForm')?.scrollIntoView({
 			behavior: 'smooth',
 			block: 'center',
 		})
-	}, [selectedDate])
+	}, [selectedDate, serviceDuration])
 
 	useEffect(() => {
 		if (selectedTime) {
 			setValue('time', selectedTime[0])
 			setValue('timeEnd', selectedTime[1])
 		}
-	}, [selectedTime, serviceDuration])
+	}, [selectedTime])
 
 	return (
 		<div

@@ -23,12 +23,16 @@ const navItems = [
 		href: '/promocodes',
 	},
 	{
-		label: 'Rezerwacje',
+		label: 'Rezerwacja',
 		href: '/reservation',
 	},
 	{
-		label: 'Wydarzenia',
+		label: 'Lista Rezerwacji',
 		href: '/events',
+	},
+	{
+		label: 'Kalendarz',
+		href: '/calendar',
 	},
 ]
 

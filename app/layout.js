@@ -1,5 +1,4 @@
-import ContactsSection from '@/components/ContactsSection'
-import Header from '@/components/Header'
+import OneSignalInit from '@/components/OneSignalInit'
 import { plPL } from '@clerk/localizations'
 import { ClerkProvider } from '@clerk/nextjs'
 import { Analytics } from '@vercel/analytics/react'
@@ -140,10 +139,15 @@ export default function RootLayout({ children }) {
 				<head>
 					<link rel='icon' href='/siteIcon/favicon.ico' type='image/x-icon' />
 					<link rel='apple-touch-icon' href='/siteIcon/icon.svg'></link>
+					<script
+						src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+						defer
+					></script>
 				</head>
 				<body
 					className={`${montserratRegular.variable} ${NunitoFont.variable} antialiased text-sm sm:text-xl lg:text-2xl 3xl:text-3xl font-normal overflow-x-clip`}
 				>
+					<OneSignalInit />
 					<main>{children}</main>
 
 					<Analytics />

@@ -1,6 +1,9 @@
+import Button from '@/components/ui/button'
+import Link from 'next/link'
+
 const PrivacyPolicy = () => {
 	return (
-		<div className='container-padding'>
+		<div className='container-padding flex flex-col'>
 			<p className='text-center text-2xl font-bold'>Polityka prywatności</p>
 
 			<h2 className='mt-6 font-bold'>I. Postanowienia ogólne</h2>
@@ -143,6 +146,9 @@ const PrivacyPolicy = () => {
 					polskiego.
 				</li>
 			</ol>
+			<Button className={'mt-4 mx-auto'}>
+				<Link href={'/'}>Wrócić na strone</Link>
+			</Button>
 		</div>
 	)
 }

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { DateTime } from 'luxon'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import ReservationMenu from './reservationMenu'
 
 const ReservationCard = ({
 	id,
@@ -15,6 +16,7 @@ const ReservationCard = ({
 	contactInfo: contact,
 	address,
 	promoCode,
+	price,
 	additionalInfo,
 	status = 'pending',
 	past = false, // 🟢 Указывает, что резервация прошлая
@@ -90,8 +92,26 @@ const ReservationCard = ({
 						? 'Anulowane'
 						: 'Oczekujące'}
 				</span>
-			</div>
+				<ReservationMenu
+					options={[
+						{
+							label: 'Edytuj',
 
+							onClick: onEdit,
+						},
+						{
+							label: 'Zakończ',
+
+							onClick: () => alert('Zakończono!'),
+						},
+						{
+							label: 'Zakończ + komentarz',
+
+							onClick: () => alert('Zakończono z komentarzem!'),
+						},
+					]}
+				/>
+			</div>
 			<div className='mt-3 flex flex-col gap-2'>
 				<div>
 					<p className='text-sm text-gray-500 dark:text-gray-400'>
@@ -111,6 +131,15 @@ const ReservationCard = ({
 					<p className='text-sm text-gray-500 dark:text-gray-400'>Adres:</p>
 					<p className='text-md font-medium'>{address}</p>
 				</div>
+
+				{price !== undefined && (
+					<div>
+						<p className='text-sm text-gray-500 dark:text-gray-400'>Cena:</p>
+						<p className='text-md font-semibold text-green-600'>
+							{price.toFixed(2)} zł
+						</p>
+					</div>
+				)}
 
 				{promoCode && (
 					<div>

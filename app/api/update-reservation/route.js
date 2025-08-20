@@ -12,6 +12,7 @@ export async function POST(req) {
 				data: {
 					serviceName: data.service,
 					address: data.address,
+					price: data.price,
 					contactInfo: data.contactInfo,
 					startTime: new Date(`${data.date}T${data.time}:00`),
 					endTime: new Date(`${data.date}T${data.timeEnd}:00`),

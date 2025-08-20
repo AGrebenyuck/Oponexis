@@ -85,6 +85,7 @@ export async function createReservation(bookingData) {
 				contactInfo: bookingData.contacts,
 				promoCode: bookingData.promocode,
 				startTime: bookingData.startTime,
+				price: bookingData.price,
 				zadarmaDealId: deal.id.toString(),
 				zadarmaTaskId: task.data.id.toString(),
 				endTime: bookingData.endTime,

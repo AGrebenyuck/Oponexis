@@ -38,6 +38,8 @@ model Reservation {
   zadarmaTaskId  String?
   startTime      DateTime
   endTime        DateTime
+  price          Float
+  status         String               @default("pending")
   serviceNameIds String[]             @default([])
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
@@ -154,6 +156,20 @@ model DayAvailability {
   startTime      DateTime
   endTime        DateTime
   availability   Calendar  @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
+}
+
+model SentNotification {
+  id        String   @id @default(cuid())
+  date      DateTime @unique
+  createdAt DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }
 
 enum DayOfWeek {

@@ -1,10 +1,12 @@
+'use client'
+
+import { checkUser } from '@/lib/checkUser'
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Button from './ui/button'
 import UserMenu from './userMenu'
-import { checkUser } from '@/lib/checkUser'
 
 const HeaderPanel = () => {
 	const [role, setRole] = useState('user')

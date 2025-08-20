@@ -1,0 +1,14 @@
+{
+	"cron": [
+		{
+			"path": "/api/push-daily-summary",
+			"schedule": "0 8 * * *",
+			"timezone": "Europe/Warsaw"
+		},
+		{
+			"path": "/api/push-schedule",
+			"schedule": "*/10 * * * *",
+			"timezone": "Europe/Warsaw"
+		}
+	]
+}

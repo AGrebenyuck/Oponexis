@@ -131,3 +131,9 @@ textarea {
 .animate-fadeSlideIn {
 	animation: fadeSlideIn 0.3s ease-out forwards;
 }
+
+.fc-col-header-cell-cushion {
+	font-size: 10px;
+	font-weight: 600;
+	color: #374151; /* Tailwind's gray-700 */
+}

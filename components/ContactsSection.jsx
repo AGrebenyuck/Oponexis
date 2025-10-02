@@ -8,6 +8,7 @@ import {
 	PhoneIcon,
 } from './Icons'
 import { memo } from 'react'
+import { LINKS, SITE } from '@/lib/site'
 
 const ContactsSection = memo(() => {
 	return (
@@ -97,12 +98,12 @@ const ContactsSection = memo(() => {
 								</Link>
 							</li>
 							<li>
-								<Link href='tel:+48776888488'>
+								<Link href={LINKS.PHONE_TEL}>
 									<div className='flex gap-5 md:gap-8 lg:gap-11 items-center'>
 										<PhoneIcon className='w-[22px] h-[22px] md:w-[40px] md:h-[45px]' />
 										<div>
 											<h4 className='font-semibold'>Zadzwoń do nas</h4>
-											<h5>+48776888488</h5>
+											<h5>{SITE.PHONE_RAW}</h5>
 										</div>
 									</div>
 								</Link>
@@ -113,7 +114,7 @@ const ContactsSection = memo(() => {
 										<MailIcon className='w-[22px] h-[22px] md:w-[40px] md:h-[45px]' />
 										<div>
 											<h4 className='font-semibold'>Napisz do nas</h4>
-											<h5>info@oponexis.pl</h5>
+											<h5>{SITE.EMAIL}</h5>
 										</div>
 									</div>
 								</Link>

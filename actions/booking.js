@@ -1,15 +1,10 @@
 'use server'
 
+import { getPartnerFromCookies, round2 } from '@/lib/getPartnerFromCookies'
 import { db } from '@/lib/prisma'
 import { auth } from '@clerk/nextjs/server'
 import { DateTime } from 'luxon'
-import { noStore } from 'next/cache'
 import { createUser } from './user'
-import {
-	createZadarmaDeal,
-	createZadarmaTask,
-	updateZadarmaCustomer,
-} from './zadarma'
 
 const TIMEZONE = 'Europe/Warsaw'
 
@@ -39,11 +34,11 @@ export async function createReservation(bookingData) {
 						data: { phone: bookingData.phone },
 					})
 
-					await updateZadarmaCustomer({
-						id: existingUser.zadarmaId,
-						name: existingUser.name,
-						phone: bookingData.phone,
-					})
+					// await updateZadarmaCustomer({
+					// 	id: existingUser.zadarmaId,
+					// 	name: existingUser.name,
+					// 	phone: bookingData.phone,
+					// })
 				}
 				userRecord = existingUser
 			}
@@ -52,28 +47,39 @@ export async function createReservation(bookingData) {
 			userRecord = await createUser(bookingData)
 		}
 
-		if (!userRecord || !userRecord.zadarmaId) {
-			throw new Error('❌ Ошибка: не удалось получить zadarmaId пользователя')
+		// if (!userRecord || !userRecord.zadarmaId) {
+		// 	throw new Error('❌ Ошибка: не удалось получить zadarmaId пользователя')
+		// }
+
+		// // 5. Создание сделки
+		// const deal = await createZadarmaDeal({
+		// 	title:
+		// 		bookingData.service + ' ' + bookingData.date + ' ' + bookingData.time,
+		// 	budget: bookingData.price,
+		// 	customer_id: userRecord.zadarmaId,
+		// })
+
+		// if (!deal.id) {
+		// 	throw new Error('❌ Не удалось создать сделку в Zadarma')
+		// }
+
+		// // 6. Создание задачи
+		// const task = await createZadarmaTask(
+		// 	bookingData,
+		// 	userRecord.zadarmaId,
+		// 	deal.id
+		// )
+
+		const partner = await getPartnerFromCookies()
+		const priceZl = Number(bookingData.price) // у тебя Float в zł
+		let partnerCode = null
+		let partnerCommissionAmount = null
+
+		if (partner) {
+			partnerCode = partner.code
+			const pct = Number(partner.commissionPct || 0) // например, 10 (%)
+			partnerCommissionAmount = round2((priceZl * pct) / 100) // комиссия в zł (Float)
 		}
-
-		// 5. Создание сделки
-		const deal = await createZadarmaDeal({
-			title:
-				bookingData.service + ' ' + bookingData.date + ' ' + bookingData.time,
-			budget: bookingData.price,
-			customer_id: userRecord.zadarmaId,
-		})
-
-		if (!deal.id) {
-			throw new Error('❌ Не удалось создать сделку в Zadarma')
-		}
-
-		// 6. Создание задачи
-		const task = await createZadarmaTask(
-			bookingData,
-			userRecord.zadarmaId,
-			deal.id
-		)
 
 		// 7. Сохраняем резервацию
 		const booking = await db.reservation.create({
@@ -86,10 +92,12 @@ export async function createReservation(bookingData) {
 				promoCode: bookingData.promocode,
 				startTime: bookingData.startTime,
 				price: bookingData.price,
-				zadarmaDealId: deal.id.toString(),
-				zadarmaTaskId: task.data.id.toString(),
+				// zadarmaDealId: deal.id.toString() || '',
+				// zadarmaTaskId: task.data.id.toString() || '',
 				endTime: bookingData.endTime,
 				serviceNameIds: bookingData.serviceNameIds ?? [],
+				partnerCode,
+				partnerCommissionAmount,
 			},
 		})
 

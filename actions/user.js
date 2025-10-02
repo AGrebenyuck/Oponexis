@@ -2,7 +2,6 @@
 
 import { logError } from '@/lib/logError'
 import { db } from '@/lib/prisma'
-import { createZadarmaCustomer } from './zadarma'
 
 export async function createUser(data) {
 	try {
@@ -18,20 +17,20 @@ export async function createUser(data) {
 
 		if (existingUser && existingUser.role !== 'admin') return existingUser
 
-		const customer = await createZadarmaCustomer({
-			name: data.name,
-			email: data.email || '',
-			phone: data.phone,
-		})
+		// const customer = await createZadarmaCustomer({
+		// 	name: data.name,
+		// 	email: data.email || '',
+		// 	phone: data.phone,
+		// })
 
-		if (!customer || customer.status !== 'success') {
-			throw new Error('❌ createUser: Failed to create customer in Zadarma')
-		}
+		// if (!customer || customer.status !== 'success') {
+		// 	throw new Error('❌ createUser: Failed to create customer in Zadarma')
+		// }
 
 		const userPayload = {
 			name: data.name,
 			phone: data.phone,
-			zadarmaId: customer.data.id.toString(),
+			// zadarmaId: customer.data.id.toString() || '',
 			email: data.email || undefined,
 			username: data.email
 				? `${data.name}-${data.email.split('@')[0]}`

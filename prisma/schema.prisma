@@ -26,25 +26,71 @@ model User {
   sources      UserSource[]
 }
 
+model Partner {
+  id            String   @id @default(cuid())
+  name          String
+  code          String   @unique // что пойдёт в ?ref=
+  commissionPct Float    @default(10) // процент партнёра, %
+  createdAt     DateTime @default(now())
+}
+
+model ReferralHit {
+  id          String   @id @default(cuid())
+  partnerCode String
+  visitorId   String
+  day         String // 'YYYY-MM-DD'
+  createdAt   DateTime @default(now())
+
+  @@unique([partnerCode, visitorId, day]) // 1 хит/день/визитор/партнёр
+}
+
+model CallIntent {
+  id          String   @id @default(cuid())
+  partnerCode String
+  visitorId   String?
+  ua          String?
+  createdAt   DateTime @default(now())
+
+  @@index([partnerCode, createdAt])
+}
+
+model Lead {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  name        String
+  phone       String
+  serviceId   String
+  // опционально:
+  partnerCode String? // из cookie ref
+  serviceName String?
+  selectedIds String[] @default([]) // если захочешь сохранять все выбранные id
+  ua          String? // user-agent
+  ip          String? // ip (для антиспама/аналитики)
+  status      String   @default("new") // new|handled|spam
+}
+
 model Reservation {
-  id             String               @id @default(cuid())
-  userId         String
-  address        String
-  serviceName    String
-  contactInfo    String
-  additionalInfo String?
-  promoCode      String?
-  zadarmaDealId  String?
-  zadarmaTaskId  String?
-  startTime      DateTime
-  endTime        DateTime
-  price          Float
-  status         String               @default("pending")
-  serviceNameIds String[]             @default([])
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
-  user           User                 @relation(fields: [userId], references: [id])
-  services       ServiceReservation[] @relation("ReservationServices")
+  id                      String               @id @default(cuid())
+  userId                  String
+  address                 String
+  serviceName             String
+  contactInfo             String
+  additionalInfo          String?
+  promoCode               String?
+  zadarmaDealId           String?
+  zadarmaTaskId           String?
+  startTime               DateTime
+  endTime                 DateTime
+  price                   Float
+  status                  String               @default("pending")
+  serviceNameIds          String[]             @default([])
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  user                    User                 @relation(fields: [userId], references: [id])
+  services                ServiceReservation[] @relation("ReservationServices")
+  // атрибуция
+  partnerCode             String?
+  partnerCommissionAmount Float? // комиссия партнёру в zł (под твой float)
 }
 
 model Service {

@@ -2,7 +2,7 @@ import React from 'react'
 import clsx from 'clsx'
 
 const Button = ({
-	type = 'default',
+	type = 'button',
 	children,
 	onClick,
 	disabled,
@@ -22,7 +22,7 @@ const Button = ({
 
 	return (
 		<button
-			type='button'
+			type={type}
 			className={clsx(
 				baseStyles,
 				typeStyles[type],

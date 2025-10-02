@@ -1,5 +1,4 @@
-// 💡 Очищенная и безопасная версия каскадного Select с SelectOption
-
+// components/ui/select.jsx
 import {
 	Children,
 	cloneElement,
@@ -11,6 +10,10 @@ import {
 } from 'react'
 import { SelectArrowDown, SelectArrowUp } from '../Icons'
 
+const DESKTOP_MIN_MENU = 420 // можно поменять
+const DESKTOP_MAX_MENU = 700 // можно поменять
+const DESKTOP_BREAKPOINT = 1024 // lg
+
 const Select = forwardRef(
 	(
 		{
@@ -20,7 +23,8 @@ const Select = forwardRef(
 			value,
 			defaultValue = null,
 			multiple = false,
-			position = 'top',
+			position = 'bottom', // 'top' | 'bottom'
+			triggerClassName = '',
 		},
 		ref
 	) => {
@@ -30,10 +34,16 @@ const Select = forwardRef(
 		const [open, setOpen] = useState(false)
 		const [optionMetaMap, setOptionMetaMap] = useState({})
 		const selectRef = useRef(null)
+		const menuRef = useRef(null)
+		const [menuStyle, setMenuStyle] = useState({}) // динамическая ширина
 
 		useEffect(() => {
-			const handleClickOutside = event => {
-				if (selectRef.current && !selectRef.current.contains(event.target)) {
+			const handleClickOutside = e => {
+				if (
+					selectRef.current &&
+					!selectRef.current.contains(e.target) &&
+					!menuRef.current?.contains(e.target)
+				) {
 					setOpen(false)
 				}
 			}
@@ -42,78 +52,117 @@ const Select = forwardRef(
 		}, [])
 
 		useEffect(() => {
-			if (value !== undefined) {
-				setSelected(value)
-			}
+			if (value !== undefined) setSelected(value)
 		}, [value])
 
-		// 💡 Безопасный сбор meta только один раз
 		useLayoutEffect(() => {
 			const map = {}
-
 			Children.forEach(children, child => {
 				if (!child?.props?.value) return
-
-				const value = child.props.value
+				const v = child.props.value
 				const label = extractLabel(child.props.children)
 				const subOptions = child.props.subOptions || []
-
-				map[value] = { label, subOptions }
-
+				map[v] = { label, subOptions }
 				subOptions.forEach(sub => {
-					map[sub.value] = { label: sub.label, parent: value }
+					map[sub.value] = { label: sub.label, parent: v }
 				})
 			})
-
 			setOptionMetaMap(map)
 		}, [children])
 
-		const handleSelect = (selectedValue, isSub = false) => {
-			if (multiple) {
-				let newValues = []
+		// пересчёт ширины и позиционирования меню на open/resize/scroll
+		useEffect(() => {
+			function calcMenuBox() {
+				if (!open || !selectRef.current) return
 
-				if (selected.includes(selectedValue)) {
-					newValues = selected.filter(v => v !== selectedValue)
+				const trigger = selectRef.current.getBoundingClientRect()
+				const viewportW = window.innerWidth
+				const margin = 8 // отступ от краёв экрана
 
-					if (!isSub && optionMetaMap[selectedValue]?.subOptions?.length > 0) {
-						const subValues = optionMetaMap[selectedValue].subOptions.map(
-							s => s.value
-						)
-						newValues = newValues.filter(v => !subValues.includes(v))
-					}
-				} else {
-					newValues = [...selected, selectedValue]
+				// ширина
+				const freeRight = Math.max(0, viewportW - trigger.left - margin)
+				let width = trigger.width
+				if (viewportW >= DESKTOP_BREAKPOINT) {
+					width = Math.min(
+						Math.max(trigger.width, DESKTOP_MIN_MENU),
+						Math.min(DESKTOP_MAX_MENU, freeRight)
+					)
+				}
+				width = Math.max(220, width) // страховка
+
+				// позиция по X (внутри обёртки селекта): центр относительно триггера
+				// базово ставим так, чтобы центр меню совпал с центром триггера
+				let left = Math.round((trigger.width - width) / 2)
+
+				// кламп: чтобы меню не выходило за экран
+				// абсолютная позиция меню в вьюпорте = trigger.left + left
+				const minLeft = margin - trigger.left // не дальше левого края
+				const maxLeft = viewportW - margin - (trigger.left + width) // не дальше правого края
+				left = Math.min(Math.max(left, minLeft), maxLeft)
+
+				// на мобильных — фиксированно по триггеру
+				if (viewportW < DESKTOP_BREAKPOINT) {
+					width = trigger.width
+					left = 0
 				}
 
-				setSelected(newValues)
-				onChange?.(newValues)
+				setMenuStyle({ width: `${width}px`, left: `${left}px` })
+			}
+
+			calcMenuBox()
+			const r = () => calcMenuBox()
+			if (open) {
+				window.addEventListener('resize', r)
+				window.addEventListener('scroll', r, true)
+			}
+			return () => {
+				window.removeEventListener('resize', r)
+				window.removeEventListener('scroll', r, true)
+			}
+		}, [open])
+
+		const handleSelect = (selectedValue, isSub = false) => {
+			if (multiple) {
+				let next = Array.isArray(selected) ? [...selected] : []
+				const exists = next.includes(selectedValue)
+
+				if (exists) {
+					next = next.filter(v => v !== selectedValue)
+					if (!isSub && optionMetaMap[selectedValue]?.subOptions?.length > 0) {
+						const subs = optionMetaMap[selectedValue].subOptions.map(
+							s => s.value
+						)
+						next = next.filter(v => !subs.includes(v))
+					}
+				} else {
+					next.push(selectedValue)
+				}
+				setSelected(next)
+				onChange?.(next)
 			} else {
-				const newValue = selected === selectedValue ? null : selectedValue
-				setSelected(newValue)
-				onChange?.(newValue)
+				const v = selected === selectedValue ? null : selectedValue
+				setSelected(v)
+				onChange?.(v)
 				setOpen(false)
 			}
 		}
 
 		const handleRemove = valueToRemove => {
-			const subValues =
+			const subs =
 				optionMetaMap[valueToRemove]?.subOptions?.map(s => s.value) || []
-			const newValues = selected.filter(
-				v => v !== valueToRemove && !subValues.includes(v)
+			const next = (Array.isArray(selected) ? selected : []).filter(
+				v => v !== valueToRemove && !subs.includes(v)
 			)
-			setSelected(newValues)
-			onChange?.(newValues)
+			setSelected(next)
+			onChange?.(next)
 		}
 
 		const renderGroupedTags = () => {
 			const groups = {}
-
-			selected.forEach(val => {
+			;(Array.isArray(selected) ? selected : []).forEach(val => {
 				const meta = optionMetaMap[val]
 				if (!meta) return
-
 				const parent = meta.parent || val
-
 				if (!groups[parent]) {
 					groups[parent] = {
 						label: optionMetaMap[parent]?.label,
@@ -121,90 +170,132 @@ const Select = forwardRef(
 						hasParent: !!meta.parent,
 					}
 				}
-
-				if (meta.parent) {
+				if (meta.parent)
 					groups[parent].subs.push({ label: meta.label, value: val })
-				}
 			})
 
 			return Object.entries(groups).flatMap(([key, group]) => {
 				const tags = []
-
+				// Родительский тег — ПОЛНОЕ название, без обрезания
 				tags.push(
 					<span
 						key={key}
-						className='bg-blue-100 text-blue-800 px-2 py-1 text-sm rounded flex items-center mr-1 mb-1'
+						title={group.label || ''} // тултип с полным названием
+						className='bg-white/15 text-white px-2 py-1 text-xs rounded-lg flex items-center mr-1 mb-1 whitespace-normal break-words'
 					>
-						{group.label}
+						<span>{group.label}</span>
 						<span
-							className='ml-1 text-red-500 cursor-pointer'
+							role='button'
+							tabIndex={0}
+							className='ml-1 text-white/70 hover:text-white cursor-pointer select-none'
 							onClick={e => {
 								e.stopPropagation()
 								handleRemove(key)
 							}}
+							onKeyDown={e => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault()
+									handleRemove(key)
+								}
+							}}
+							aria-label='Usuń'
 						>
 							✕
 						</span>
 					</span>
 				)
-
+				// Теги детей — тоже без обрезания
 				group.subs.forEach(sub => {
 					tags.push(
 						<span
 							key={sub.value}
-							className='bg-gray-200 text-gray-800 px-2 py-1 text-xs rounded flex items-center mr-1 mb-1 ml-2'
+							title={sub.label || ''}
+							className='bg-white/10 text-white/90 px-2 py-1 text-[11px] rounded-md flex items-center mr-1 mb-1 whitespace-normal break-words'
 						>
-							{sub.label}
+							<span>{sub.label}</span>
 							<span
-								className='ml-1 text-red-500 cursor-pointer'
+								role='button'
+								tabIndex={0}
+								className='ml-1 text-white/70 hover:text-white cursor-pointer select-none'
 								onClick={e => {
 									e.stopPropagation()
 									handleRemove(sub.value)
 								}}
+								onKeyDown={e => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault()
+										handleRemove(sub.value)
+									}
+								}}
+								aria-label='Usuń'
 							>
 								✕
 							</span>
 						</span>
 					)
 				})
-
 				return tags
 			})
 		}
 
+		const menuPosClass =
+			position === 'top' ? 'bottom-full mb-1' : 'top-[105%] mt-1'
+
 		return (
 			<div ref={selectRef} className='relative inline-block w-full'>
-				<button
+				{/* Триггер — div role=button */}
+				<div
 					ref={ref}
-					className='border md:border-2 border-white rounded-xl md:rounded-3xl px-3 py-4 md:px-6 md:py-4 font-semibold cursor-pointer flex justify-between items-center w-full'
+					role='button'
+					tabIndex={0}
 					onClick={() => setOpen(!open)}
-					type='button'
+					onKeyDown={e => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault()
+							setOpen(!open)
+						}
+					}}
+					className={`
+						w-full
+						flex items-center justify-between       /* <— выравниваем по верху */
+						rounded-xl bg-white/10 border border-white/30
+						px-3 pt-2 pb-2                         /* <— паддинги вместо фикс. высоты */
+						font-semibold text-left text-white placeholder-white/50
+						outline-none focus:outline-none focus:ring-2 focus:ring-white/40
+						${triggerClassName || ''}
+					`}
 				>
-					{multiple ? (
-						<div className='flex flex-wrap gap-1 text-left'>
-							{selected.length > 0 ? (
+					<div className='min-h-[1.5rem] flex flex-wrap gap-1 grow'>
+						{multiple ? (
+							Array.isArray(selected) && selected.length > 0 ? (
 								renderGroupedTags()
 							) : (
-								<span className='text-gray-400'>{placeholder}</span>
-							)}
-						</div>
-					) : (
-						<span className={selected ? '' : 'text-gray-400'}>
-							{optionMetaMap[selected]?.label || placeholder}
-						</span>
-					)}
-					<span className='ml-2'>
+								<span className='text-white/50'>{placeholder}</span>
+							)
+						) : (
+							<span className={selected ? '' : 'text-white/50'}>
+								{optionMetaMap[selected]?.label || placeholder}
+							</span>
+						)}
+					</div>
+					<span className='ml-2 shrink-0 opacity-80'>
 						{open ? <SelectArrowUp /> : <SelectArrowDown />}
 					</span>
-				</button>
+				</div>
 
+				{/* Меню — более плотное, с динамической шириной на десктопе */}
 				{open && (
 					<div
-						className={`absolute ${
-							position === 'top' ? 'bottom-full' : 'top-[105%]'
-						} w-full mb-1 bg-primary-blue border lg:border-2 border-white rounded-xl lg:rounded-3xl shadow-lg p-3 flex flex-col items-start md:items-center gap-1 z-10 max-h-[300px] `}
+						ref={menuRef}
+						style={menuStyle}
+						className={`
+              absolute z-50 ${menuPosClass}
+              rounded-xl border border-white/40 bg-primary-blue/95
+              backdrop-blur-md shadow-xl p-1 ring-1 ring-white/30
+              max-h-[320px] overflow-y-auto
+            `}
 					>
-						<div className='overflow-y-auto scrollbar pr-1'>
+						<div className='py-1'>
 							{Children.map(children, child =>
 								cloneElement(child, {
 									onSelect: handleSelect,
@@ -245,44 +336,76 @@ export const SelectOption = ({
 		? selected.includes(value)
 		: selected === value
 
-	const handleClick = () => {
-		onSelect(value, false)
-	}
+	const handleClick = () => onSelect(value, false)
+	const handleSubSelect = subVal => onSelect(subVal, true)
 
-	const handleSubSelect = subVal => {
-		onSelect(subVal, true)
-	}
+	// для тултипа возьмём первый «сырой» текст — это название
+	const parentLabel = Array.isArray(children) ? children[0] : children
 
 	return (
 		<div className='w-full'>
+			{/* Родитель */}
 			<button
-				className={`py-2 mt-1 px-6 w-full text-left cursor-pointer transition-all hover:bg-white hover:text-primary-blue rounded-3xl flex items-center gap-2 ${
-					isSelected ? 'bg-white text-primary-blue' : ''
-				}`}
-				onClick={handleClick}
 				type='button'
+				onClick={handleClick}
+				title={typeof parentLabel === 'string' ? parentLabel : undefined}
+				className={`
+          w-full flex items-center gap-2 rounded-lg px-3 py-2
+          text-left transition-colors whitespace-nowrap
+          ${
+						isSelected
+							? 'bg-white/18 text-white'
+							: 'text-white hover:bg-white/12'
+					}
+        `}
 			>
 				{multiple && (
-					<input
-						type='checkbox'
-						checked={isSelected}
-						readOnly
-						className='mr-2'
-					/>
+					<span
+						className={`
+              inline-flex h-4 w-4 items-center justify-center rounded-[6px] border
+              ${
+								isSelected
+									? 'border-white bg-white/90'
+									: 'border-white/40 bg-transparent'
+							}
+            `}
+						aria-hidden
+					>
+						{isSelected ? (
+							<svg viewBox='0 0 20 20' className='h-3 w-3 text-primary-blue'>
+								<path
+									d='M7.6 13.2L4.4 10l-1 1 4.2 4.2L17 5.8l-1-1z'
+									fill='currentColor'
+								/>
+							</svg>
+						) : null}
+					</span>
 				)}
-				{children}
+				<span className='flex-1 flex items-center gap-2 min-w-0'>
+					<span className='truncate'>{parentLabel}</span>
+					{Array.isArray(children) ? children.slice(1) : null}
+				</span>
 			</button>
 
-			{isSelected && subOptions.length > 0 && (
-				<div className='ml-6 mt-1 flex flex-col gap-1'>
-					{subOptions.map(sub => {
-						const isSubSelected = selected.includes(sub.value)
+			{/* Подопции */}
+			{subOptions.length > 0 && (
+				<div className='ml-8 mt-1 mb-1 flex flex-col gap-1'>
+					{subOptions.map((sub, i) => {
+						const subSel =
+							Array.isArray(selected) && selected.includes(sub.value)
 						return (
 							<button
-								key={sub.value}
-								className={`py-1 px-4 text-left rounded-2xl transition-all hover:bg-white hover:text-primary-blue ${
-									isSubSelected ? 'bg-white text-primary-blue' : ''
-								}`}
+								key={sub.value || i}
+								type='button'
+								title={sub.label}
+								className={`
+                  w-full flex items-center gap-2 rounded-md px-3 py-2
+                  ${
+										subSel
+											? 'bg-white/14 text-white'
+											: 'text-white/90 hover:bg-white/10'
+									}
+                `}
 								onClick={e => {
 									e.preventDefault()
 									e.stopPropagation()
@@ -290,14 +413,36 @@ export const SelectOption = ({
 								}}
 							>
 								{multiple && (
-									<input
-										type='checkbox'
-										checked={isSubSelected}
-										readOnly
-										className='mr-2'
-									/>
+									<span
+										className={`
+                      inline-flex h-4 w-4 items-center justify-center rounded-[6px] border
+                      ${
+												subSel
+													? 'border-white bg-white/90'
+													: 'border-white/40 bg-transparent'
+											}
+                    `}
+										aria-hidden
+									>
+										{subSel ? (
+											<svg
+												viewBox='0 0 20 20'
+												className='h-3 w-3 text-primary-blue'
+											>
+												<path
+													d='M7.6 13.2L4.4 10l-1 1 4.2 4.2L17 5.8l-1-1z'
+													fill='currentColor'
+												/>
+											</svg>
+										) : null}
+									</span>
 								)}
-								{sub.label} - {sub.price} PLN
+								<span className='flex-1 min-w-0 flex items-center gap-2'>
+									<span className='truncate'>{sub.label}</span>
+									<span className='ml-auto text-white/85 text-sm shrink-0 whitespace-nowrap'>
+										{sub.price} zł
+									</span>
+								</span>
 							</button>
 						)
 					})}

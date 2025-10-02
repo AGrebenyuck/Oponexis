@@ -108,19 +108,19 @@ const MultiStepLayout = () => {
 		if (result?.success) {
 			setResultStatus('success')
 			setResultMessage('Rezerwacja została pomyślnie utworzona.')
-			const sendMessage = async () => {
-				await fetch('/api/send-sms', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						number: '+48733315790',
-						message: `Nowa rezerwacja. Serwis:${
-							data.serviceName
-						}, Data: ${start.toFormat('dd-MM-yyyy HH:mm')} `,
-					}),
-				})
-			}
-			sendMessage()
+			// const sendMessage = async () => {
+			// 	await fetch('/api/send-sms', {
+			// 		method: 'POST',
+			// 		headers: { 'Content-Type': 'application/json' },
+			// 		body: JSON.stringify({
+			// 			number: '+48733315790',
+			// 			message: `Nowa rezerwacja. Serwis:${
+			// 				data.serviceName
+			// 			}, Data: ${start.toFormat('dd-MM-yyyy HH:mm')} `,
+			// 		}),
+			// 	})
+			// }
+			// sendMessage()
 		} else {
 			setResultStatus('error')
 			setResultMessage(result.error || 'Wystąpił błąd podczas rezerwacji.')

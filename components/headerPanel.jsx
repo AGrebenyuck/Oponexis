@@ -32,7 +32,7 @@ const HeaderPanel = () => {
 						alt='Logo Oponexis'
 						width={300}
 						height={52}
-						className='w-[160px] h-[28px] md:w-[230px] lg:w-[300px] md:h-[40px] lg:h-[52px]'
+						className='w-[160px] h-[28px] md:w-[230px] lg:w-[300px] md:h-[40px] lg:h-[52px] cursor-pointer'
 					/>
 				</Link>
 

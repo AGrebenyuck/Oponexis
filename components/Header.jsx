@@ -1,13 +1,11 @@
 'use client'
 
 import { checkUser } from '@/lib/checkUser'
-import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
 import { memo, useEffect, useState } from 'react'
 import Button from './ui/button'
-import UserMenu from './userMenu'
 
 const Header = memo(() => {
 	const [menuOpen, setMenuOpen] = useState(false)
@@ -107,7 +105,7 @@ const Header = memo(() => {
 						</li>
 						<li>
 							<Link
-								href={'#services'}
+								href={'#oferta'}
 								className='transition-colors hover:text-accent-blue'
 								onClick={e => handleClick(e, 'services')}
 							>
@@ -134,7 +132,7 @@ const Header = memo(() => {
 						Zarezerwuj
 					</Button>
 
-					<SignedOut>
+					{/* <SignedOut>
 						<SignInButton
 							mode='modal'
 							forceRedirectUrl='/'
@@ -151,7 +149,7 @@ const Header = memo(() => {
 					</SignedOut>
 					<SignedIn>
 						<UserMenu role={role} />
-					</SignedIn>
+					</SignedIn> */}
 
 					{/* Бургер-меню */}
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { LINKS, SITE } from '@/lib/site'
 import Image from 'next/image'
 import Link from 'next/link'
 import { memo, useState } from 'react'
@@ -13,29 +14,6 @@ const handleClick = (e, targetId) => {
 		behavior: 'smooth',
 		block: 'start',
 	})
-}
-const Click = (e, targetId) => {
-	e.preventDefault()
-
-	fetch(
-		'https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/WDB2030611A052311?format=json'
-	)
-		.then(response => response.json())
-		.then(data => {
-			const results = data.Results
-			const carInfo = results.reduce((acc, item) => {
-				// Ищем ключи, которые нам важны
-				if (item.Variable === 'Make') acc.make = item.Value
-				if (item.Variable === 'Model Year') acc.year = item.Value
-				if (item.Variable === 'Vehicle Type') acc.type = item.Value
-				return acc
-			}, {})
-
-			console.log('Марка:', carInfo.make)
-			console.log('Год выпуска:', carInfo.year)
-			console.log('Тип автомобиля:', carInfo.type)
-		})
-		.catch(error => console.log('Ошибка при запросе данных:', error))
 }
 
 const Hero = memo(() => {
@@ -67,7 +45,7 @@ const Hero = memo(() => {
 			<div className='px-4 pt-16 pb-10 sm:px-10 md:px-16 lg:py-28 2xl:py-48 md:pb-10 z-10 flex justify-between'>
 				<div className='relative max-w-[910px]'>
 					<h1 className='text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 sm:mb-8 md:mb-11'>
-						Zadbaj o swoje auto bez wychodzenia z domu !
+						Serwis mobilnej wulkanizacji w Opolu !
 					</h1>
 					<p className='mb-10 sm:mb-11'>
 						Nie musisz czekać na wolny termin w tradycyjnym warsztacie ani stać
@@ -78,11 +56,15 @@ const Hero = memo(() => {
 							href={'#services'}
 							onClick={e => handleClick(e, 'reservation')}
 						>
-							<Button className='w-full'>Szybka Rezerwacja</Button>
+							<Button type='default' className='w-full'>
+								Szybka Rezerwacja
+							</Button>
 						</Link>
-						<Link href='tel:+48776888488'>
-							<Button type='alternative' className='w-full'>
-								Zadzwoń
+						<Link href={LINKS.PHONE_TEL}>
+							<Button type='alternative' className='w-full text-lg lg:text-2xl'>
+								<span className=' font-extrabold ml-2'>
+									{SITE.PHONE_DISPLAY}
+								</span>
 							</Button>
 						</Link>
 					</div>

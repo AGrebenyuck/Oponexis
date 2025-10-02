@@ -1,19 +1,20 @@
 import FAQSection from '@/components/FAQSection'
 import Hero from '@/components/Hero'
 import HowItWorksSection from '@/components/HowItWorksSection'
-import OffersSection from '@/components/OffersSection'
-import ReservationSection from '@/components/ReservationSection'
-import ServiceSection from '@/components/ServiceSection'
+import OffersGrid from '@/components/OfferGrid'
+import QuickReservation from '@/components/QuickReservation'
 import TestimonialsSection from '@/components/TestimonialsSection'
 
 export default function Home() {
 	return (
 		<>
 			<Hero />
-			<OffersSection />
+			<OffersGrid />
+			{/* <OffersSection /> */}
 			<HowItWorksSection />
-			<ServiceSection />
-			<ReservationSection />
+			<QuickReservation />
+			{/* <ServiceSection /> */}
+			{/* <ReservationSection /> */}
 			<TestimonialsSection />
 			<FAQSection />
 		</>

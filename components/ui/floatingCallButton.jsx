@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import FloatButton from '@/components/ui/FloatButton'
+
 import { motion } from 'framer-motion'
 
 // Если у тебя есть константы — используй их:
 import { LINKS, SITE } from '@/lib/site' // <- если нет, замени на свои
+import FloatButton from './floatButton'
 
 // Простейшая иконка-трубка (можешь заменить на свою)
 function PhoneIcon({ className = '' }) {

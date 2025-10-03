@@ -91,7 +91,7 @@ export async function POST(req) {
 		tgLines.push(`🆕 Zgłoszenie:`)
 		tgLines.push(`Imię: ${lead.name}`)
 		tgLines.push(`Tel: ${lead.phone}`)
-		tgLines.push(`Usługa główna: ${lead.serviceName || lead.serviceId}`)
+		// tgLines.push(`Usługa główna: ${lead.serviceName || lead.serviceId}`)
 		if (names.length) {
 			tgLines.push(`Wybrane: ${names.join(', ')}`)
 		} else if (lead.selectedIds?.length) {

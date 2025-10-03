@@ -32,9 +32,9 @@ const TestimonialSlider = memo(() => {
 			image: '/avatar/3.jpg',
 			name: 'Tomasz Zieliński',
 			rating: 5,
-			service: 'Serwis klimatyzacji',
+			service: 'Wymiana oleju',
 			comment:
-				'Klimatyzacja działa jak nowa! Wcześniej ledwo chłodziła, teraz jest super. Szybka i profesjonalna robota, polecam!',
+				'Nie musiałem nigdzie jechać. Przyjechali pod blok, wymienili olej i filtr w mniej niż godzinę. Wszystko czysto i profesjonalnie.',
 		},
 		{
 			image: '/avatar/4.jpg',
@@ -56,7 +56,7 @@ const TestimonialSlider = memo(() => {
 			image: '/avatar/6.jpg',
 			name: 'Krzysztof Dąbrowski',
 			rating: 5,
-			service: 'Serwis klimatyzacji',
+			service: 'Wymiana kół',
 			comment: 'Super👍',
 		},
 		{

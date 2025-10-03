@@ -2,9 +2,9 @@
 
 import { LINKS, SITE } from '@/lib/site'
 import Image from 'next/image'
-import Link from 'next/link'
 import { memo, useState } from 'react'
 import HeroSlider from './HeroSlider'
+import { PhoneIcon } from './Icons'
 import Button from './ui/button'
 
 const handleClick = (e, targetId) => {
@@ -21,6 +21,7 @@ const Hero = memo(() => {
 
 	return (
 		<section
+			data-hero
 			aria-labelledby='hero-section'
 			className='relative max-h-[768px] h-full w-full'
 		>
@@ -52,21 +53,26 @@ const Hero = memo(() => {
 						w korkach – Nasz mobilny serwis przyjedzie do ciebie .
 					</p>
 					<div className='flex flex-col gap-2 sm:flex-row sm:gap-5'>
-						<Link
-							href={'#services'}
+						<Button
 							onClick={e => handleClick(e, 'reservation')}
+							type='default'
+							className='w-full'
 						>
-							<Button type='default' className='w-full'>
-								Szybka Rezerwacja
-							</Button>
-						</Link>
-						<Link href={LINKS.PHONE_TEL}>
-							<Button type='alternative' className='w-full text-lg lg:text-2xl'>
-								<span className=' font-extrabold ml-2'>
-									{SITE.PHONE_DISPLAY}
-								</span>
-							</Button>
-						</Link>
+							Szybka Rezerwacja
+						</Button>
+
+						<Button
+							type='alternative'
+							onClick={() => {
+								if (typeof window !== 'undefined') {
+									window.location.assign(LINKS.PHONE_TEL)
+								}
+							}}
+							className='w-full text-lg lg:text-2xl fill-white hover:fill-accent-blue flex items-center justify-center'
+						>
+							<PhoneIcon className='w-4 h-4 md:w-5 md:h-5 mr-2 fill-inherit' />
+							<span className='font-extrabold'>{SITE.PHONE_DISPLAY}</span>
+						</Button>
 					</div>
 				</div>
 				{!isMobile && <HeroSlider />}

@@ -1,14 +1,15 @@
+import { LINKS, SITE } from '@/lib/site'
 import Image from 'next/image'
 import Link from 'next/link'
+import { memo } from 'react'
 import {
 	FacebookIcon,
+	InstagramIcon,
 	LinkedInIcon,
 	MailIcon,
 	MarkIcon,
 	PhoneIcon,
 } from './Icons'
-import { memo } from 'react'
-import { LINKS, SITE } from '@/lib/site'
 
 const ContactsSection = memo(() => {
 	return (
@@ -40,6 +41,14 @@ const ContactsSection = memo(() => {
 									target='_blank'
 								>
 									<FacebookIcon className='w-8 h-8 md:w-12 md:h-12 lg:w-18 lg:h-18' />
+								</Link>
+							</li>
+							<li>
+								<Link
+									href='https://www.instagram.com/oponexis.pl?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=='
+									target='_blank'
+								>
+									<InstagramIcon className='w-8 h-8 md:w-12 md:h-12 lg:w-18 lg:h-18' />
 								</Link>
 							</li>
 							<li>
@@ -98,15 +107,15 @@ const ContactsSection = memo(() => {
 								</Link>
 							</li>
 							<li>
-								<Link href={LINKS.PHONE_TEL}>
+								<a href={LINKS.PHONE_TEL}>
 									<div className='flex gap-5 md:gap-8 lg:gap-11 items-center'>
 										<PhoneIcon className='w-[22px] h-[22px] md:w-[40px] md:h-[45px]' />
 										<div>
 											<h4 className='font-semibold'>Zadzwoń do nas</h4>
-											<h5>{SITE.PHONE_RAW}</h5>
+											<h5>{SITE.PHONE_DISPLAY}</h5>
 										</div>
 									</div>
-								</Link>
+								</a>
 							</li>
 							<li>
 								<Link href='mailto:info@oponexis.pl'>

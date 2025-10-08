@@ -6,6 +6,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Montserrat, Nunito } from 'next/font/google'
 import './globals.css'
 import ReferralInit from './_components/ReferralInit'
+import Script from 'next/script'
 
 const montserratRegular = Montserrat({
 	weight: ['400', '600', '700', '800'],
@@ -23,13 +24,13 @@ const NunitoFont = Nunito({
 export const metadata = {
 	title: 'Oponexis - Wyjazdowy serwis opon i samochodów w Opolu',
 	description:
-		'Profesjonalny wyjazdowy serwis opon w Opolu. Wymiana opon, wyważanie, serwis klimatyzacji i inne usługi mobilne w Twoim mieście!',
+		'Profesjonalny wyjazdowy serwis opon w Opolu. Wymiana opon, wyważanie, i inne usługi mobilne w Twoim mieście!',
 
 	// Open Graph (OG) for social media sharing
 	openGraph: {
 		title: 'Oponexis - Wyjazdowy serwis opon i samochodów w Opolu',
 		description:
-			'Profesjonalny wyjazdowy serwis opon w Opolu. Wymiana opon, wyważanie, serwis klimatyzacji i inne usługi mobilne.',
+			'Profesjonalny wyjazdowy serwis opon w Opolu. Wymiana opon, wyważanie,i inne usługi mobilne.',
 		url: 'https://www.oponexis.pl',
 		siteName: 'Oponexis',
 		images: [
@@ -49,7 +50,7 @@ export const metadata = {
 		card: 'summary_large_image',
 		title: 'Oponexis - Wyjazdowy serwis opon i samochodów w Opolu',
 		description:
-			'Oferujemy profesjonalny wyjazdowy serwis opon w Opolu, wymianę oleju, serwis klimatyzacji i inne usługi mobilne.',
+			'Oferujemy profesjonalny wyjazdowy serwis opon w Opolu, wymianę oleju, i inne usługi mobilne.',
 		image: 'https://www.oponexis.pl/oponexis-og.JPG',
 		site: '@oponexis', // Optional Twitter handle
 	},
@@ -59,7 +60,7 @@ export const metadata = {
 
 	// Keywords for search engines (Although this is not as important as it used to be)
 	keywords:
-		'wyjazdowy serwis opon, wymiana opon Opole, serwis opon mobilny Opole, wyważanie opon Opole, serwis klimatyzacji Opole, wymiana oleju Opole, sezonowa wymiana opon Opole, magazynowanie opon Opole, przechowywanie opon Opole, wymiana opon w domu Opole, wymiana opon w pracy Opole, szybki serwis opon Opole, profesjonalna wymiana opon Opole, mobilny serwis opon Opole, opony letnie i zimowe Opole, serwis samochodowy Opole, tanie opony Opole, zakup opon Opole, naprawa opon Opole, serwis opon i felg Opole, warsztat Opole',
+		'wyjazdowy serwis opon, wymiana opon Opole, serwis opon mobilny Opole, wyważanie opon Opole, wymiana oleju Opole, sezonowa wymiana opon Opole, magazynowanie opon Opole, przechowywanie opon Opole, wymiana opon w domu Opole, wymiana opon w pracy Opole, szybki serwis opon Opole, profesjonalna wymiana opon Opole, mobilny serwis opon Opole, opony letnie i zimowe Opole, serwis samochodowy Opole, tanie opony Opole, zakup opon Opole, naprawa opon Opole, serwis opon i felg Opole, warsztat Opole',
 
 	// Additional tags for improving SEO and sharing
 	metaTags: [
@@ -97,13 +98,13 @@ export const metadata = {
 		openingHours: ['Mo-Fr 06:00-20:00', 'Sa 10:00-20:00', 'Su 10:00-20:00'],
 		contactPoint: {
 			'@type': 'ContactPoint',
-			telephone: '+48 776 888 488',
+			telephone: '+48 733 889 722',
 			contactType: 'customer service',
 			areaServed: 'PL',
 			availableLanguage: 'pl',
 		},
 		description:
-			'Oponexis to profesjonalny wyjazdowy serwis opon w Opolu. Oferujemy wymianę opon, wyważanie, serwis klimatyzacji i inne usługi mobilne.',
+			'Oponexis to profesjonalny wyjazdowy serwis opon w Opolu. Oferujemy wymianę opon, wyważanie, i inne usługi mobilne.',
 		image: 'https://www.oponexis.pl/oponexis-og.JPG',
 	},
 
@@ -112,10 +113,12 @@ export const metadata = {
 		card: 'summary_large_image',
 		title: 'Oponexis - Wyjazdowy serwis opon w Opolu',
 		description:
-			'Wymiana opon, serwis klimatyzacji, wymiana oleju i inne usługi mobilne w Opolu. Profesjonalna pomoc w każdym miejscu.',
+			'Wymiana opon, wymiana oleju i inne usługi mobilne w Opolu. Profesjonalna pomoc w każdym miejscu.',
 		image: 'https://www.oponexis.pl/oponexis-og.JPG',
 	},
 }
+
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
 
 export default function RootLayout({ children }) {
 	return (
@@ -144,10 +147,31 @@ export default function RootLayout({ children }) {
 						src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
 						defer
 					></script>
+					{GTM_ID ? (
+						<Script id='gtm-base' strategy='afterInteractive'>
+							{`
+              (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+              new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+              j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+              'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+              })(window,document,'script','dataLayer','${GTM_ID}');
+            `}
+						</Script>
+					) : null}
 				</head>
 				<body
 					className={`${montserratRegular.variable} ${NunitoFont.variable} antialiased text-sm sm:text-xl lg:text-2xl 3xl:text-3xl font-normal overflow-x-clip`}
 				>
+					{GTM_ID ? (
+						<noscript>
+							<iframe
+								src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+								height='0'
+								width='0'
+								style={{ display: 'none', visibility: 'hidden' }}
+							/>
+						</noscript>
+					) : null}
 					<OneSignalInit />
 					<main>{children}</main>
 

@@ -1,11 +1,8 @@
-import { cookies, headers } from 'next/headers'
-import { NextResponse } from 'next/server'
-
+// app/api/leads/route.js
 import { sendEmail, sendTelegram } from '@/lib/notify'
 import { db } from '@/lib/prisma'
-
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
+import { cookies, headers } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export async function POST(req) {
 	try {
@@ -43,64 +40,57 @@ export async function POST(req) {
 		})
 		if (recent) return NextResponse.json({ ok: true, throttled: true })
 
+		// создаём лид
 		const lead = await db.lead.create({
 			data: {
 				name: name.trim(),
 				phone: phone.trim(),
 				serviceId: String(serviceId),
 				serviceName: serviceName || null,
-				partnerCode,
 				selectedIds: Array.isArray(selectedServiceIds)
 					? selectedServiceIds.map(String)
 					: [],
+				selectedNames: Array.isArray(selectedServiceNames)
+					? selectedServiceNames
+					: [],
+				partnerCode,
 				ua,
 				ip,
+				status: 'new',
+				monthKey: new Date().toISOString().slice(0, 7), // например: "2025-10"
 			},
 		})
 
-		const names = Array.isArray(selectedServiceNames)
-			? selectedServiceNames.filter(Boolean)
-			: []
-		const selectedHtml = names.length
-			? `<p><b>Wybrane usługi:</b><br/>${names
-					.map(n => `• ${escapeHtml(n)}`)
-					.join('<br/>')}</p>`
-			: lead.selectedIds?.length
-			? `<p><b>Wybrane ID:</b> ${lead.selectedIds.join(', ')}</p>`
-			: ''
-
+		// уведомления
 		await sendEmail({
 			subject: '🆕 Nowe zgłoszenie (Szybka rezerwacja)',
 			html: `
-					<h2>Nowe zgłoszenie</h2>
-					<p><b>Imię:</b> ${escapeHtml(lead.name)}</p>
-					<p><b>Telefon:</b> ${escapeHtml(lead.phone)}</p>
-					<p><b>Usługa główna:</b> ${escapeHtml(lead.serviceName || lead.serviceId)}</p>
-					${selectedHtml}
-					${
-						lead.partnerCode
-							? `<p><b>Partner:</b> ${escapeHtml(lead.partnerCode)}</p>`
-							: ''
-					}
-					<hr/>
-					<p><small>${escapeHtml(ua)} | ${escapeHtml(ip || '')}</small></p>
-				`,
+        <h2>Nowe zgłoszenie</h2>
+        <p><b>Imię:</b> ${lead.name}</p>
+        <p><b>Telefon:</b> ${lead.phone}</p>
+        
+        ${
+					lead.selectedNames?.length
+						? `<p><b>Wybrane usługi:</b> ${lead.selectedNames.join(', ')}</p>`
+						: ''
+				}
+        ${lead.partnerCode ? `<p><b>Partner:</b> ${lead.partnerCode}</p>` : ''}
+        <p><small>${lead.ua}</small></p>
+      `,
 		})
 
-		const tgLines = []
-		tgLines.push(`🆕 Zgłoszenie:`)
-		tgLines.push(`Imię: ${lead.name}`)
-		tgLines.push(`Tel: ${lead.phone}`)
-		// tgLines.push(`Usługa główna: ${lead.serviceName || lead.serviceId}`)
-		if (names.length) {
-			tgLines.push(`Wybrane: ${names.join(', ')}`)
-		} else if (lead.selectedIds?.length) {
-			tgLines.push(`Wybrane ID: ${lead.selectedIds.join(', ')}`)
-		}
-		if (lead.partnerCode) tgLines.push(`Partner: ${lead.partnerCode}`)
+		await sendTelegram(
+			`🆕 Zgłoszenie:
+Imię: ${lead.name}
+Tel: ${lead.phone}
+${
+	lead.selectedNames?.length
+		? `Wybrane usługi: ${lead.selectedNames.join(', ')}\n`
+		: ''
+}${lead.partnerCode ? `Partner: ${lead.partnerCode}\n` : ''}`
+		)
 
-		await sendTelegram(tgLines.join('\n'))
-
+		// возвращаем JSON для фронта + GTM
 		return NextResponse.json({ ok: true, lead })
 	} catch (e) {
 		console.error('POST /api/leads failed:', e)
@@ -109,14 +99,4 @@ export async function POST(req) {
 			{ status: 500 }
 		)
 	}
-}
-
-function escapeHtml(s = '') {
-	return String(s).replace(
-		/[&<>"']/g,
-		m =>
-			({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[
-				m
-			])
-	)
 }

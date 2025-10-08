@@ -5,6 +5,7 @@ import { getServices } from '@/actions/service'
 import Button from '@/components/ui/button'
 import Modal from '@/components/ui/modal'
 import Result from '@/components/ui/result'
+import { gtmPush } from '@/lib/gtm'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
 
@@ -218,6 +219,7 @@ export default function QuickReservation({
 	async function submitLead(e) {
 		e.preventDefault()
 
+		// помечаем все как "потроганные", валидируем
 		setTouchedName(true)
 		setTouchedPhone(true)
 		setTouchedService(true)
@@ -243,14 +245,32 @@ export default function QuickReservation({
 
 		setSending(true)
 
-		window.dataLayer = window.dataLayer || []
-		window.dataLayer.push({
-			event: 'lead_submit',
+		// оффлайн preflight
+		if (
+			typeof navigator !== 'undefined' &&
+			navigator &&
+			navigator.onLine === false
+		) {
+			gtmPush({
+				event: 'lead_error',
+				lead_source: 'quick_form',
+				error_message: 'offline',
+			})
+			setStatus('error')
+			setMessage(
+				'Brak połączenia z internetem. Sprawdź sieć i spróbuj ponownie.'
+			)
+			setOpen(true)
+			setSending(false)
+			return
+		}
+
+		gtmPush({
+			event: 'send_form',
 			lead_source: 'quick_form',
-			service_id: primaryServiceId,
 		})
 
-		// имена выбранных (для уведомлений/аналитики)
+		// сопоставление имён (для уведомлений)
 		const idToName = new Map(services.map(s => [String(s.id), s.name]))
 		services.forEach(s =>
 			(s.additionalServices || []).forEach(sub => {
@@ -261,47 +281,72 @@ export default function QuickReservation({
 			.map(id => idToName.get(String(id)))
 			.filter(Boolean)
 
+		// таймаут для fetch (например, 10с)
+		const controller = new AbortController()
+		const t = setTimeout(() => controller.abort(), 10000)
+
 		try {
 			const res = await fetch('/api/leads', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				cache: 'no-store',
+				signal: controller.signal,
 				body: JSON.stringify({
 					name: name.trim(),
 					phone: normalizedPhone,
 					serviceId: primaryServiceId,
-					serviceName:
-						services.find(s => String(s.id) === primaryServiceId)?.name || '',
+					serviceName: idToName.get(String(primaryServiceId)) || '',
 					selectedServiceIds: serviceIds,
 					selectedServiceNames,
 				}),
 			})
-			const json = await res.json()
-			if (!res.ok || !json?.ok)
+			clearTimeout(t)
+
+			let json
+			try {
+				json = await res.json()
+			} catch {
+				// если сервер вернул HTML (редирект/страница логина и т.п.)
+				throw new Error(`Bad response ${res.status}`)
+			}
+
+			if (!res.ok || !json?.ok) {
 				throw new Error(json?.error || `HTTP ${res.status}`)
+			}
 
 			setStatus('success')
 			setMessage('Zgłoszenie przyjęte. Wkrótce do Ciebie oddzwonimy.')
 			setOpen(true)
 
-			// полный reset
+			// полный reset формы (и визуального состояния селекта)
 			resetForm()
 
-			window.dataLayer.push({
+			gtmPush({
 				event: 'lead_success',
 				lead_source: 'quick_form',
-				service_id: json?.lead?.serviceId || primaryServiceId,
-				partner_code: json?.lead?.partnerCode || null,
 			})
 		} catch (err) {
+			clearTimeout(t)
+			// ни в коем случае не rethrow — просто показываем дружелюбную ошибку
 			console.error('lead submit failed:', err)
 			setStatus('error')
-			setMessage('Nie udało się wysłać zgłoszenia. Spróbuj ponownie.')
+
+			// различим причины
+			const msg =
+				err?.name === 'AbortError'
+					? 'Przekroczono czas oczekiwania. Spróbuj ponownie.'
+					: String(err?.message || '')
+							.toLowerCase()
+							.includes('failed to fetch')
+					? 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.'
+					: 'Nie udało się wysłać zgłoszenia. Spróbuj ponownie.'
+
+			setMessage(msg)
 			setOpen(true)
-			window.dataLayer.push({
+
+			gtmPush({
 				event: 'lead_error',
 				lead_source: 'quick_form',
-				service_id: primaryServiceId,
 				error_message: String(err?.message || err),
 			})
 		} finally {

@@ -1,2 +1,8 @@
 User-agent: *
-Disallow:
+Disallow: /
+Allow: /$
+Allow: /_next/
+Allow: /images/
+Allow: /fonts/
+Allow: /favicon.ico
+Allow: /sitemap.xml

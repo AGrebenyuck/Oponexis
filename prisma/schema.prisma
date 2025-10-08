@@ -60,13 +60,17 @@ model Lead {
   name        String
   phone       String
   serviceId   String
-  // опционально:
-  partnerCode String? // из cookie ref
   serviceName String?
-  selectedIds String[] @default([]) // если захочешь сохранять все выбранные id
-  ua          String? // user-agent
-  ip          String? // ip (для антиспама/аналитики)
-  status      String   @default("new") // new|handled|spam
+  selectedIds String[] @default([])
+
+  partnerCode String? // кто привёл (из cookie)
+  ua          String?
+  ip          String?
+  status      String  @default("new") // new | handled | spam | confirmed
+
+  selectedNames String[] @default([])
+
+  monthKey String?
 }
 
 model Reservation {

@@ -61,18 +61,14 @@ const Hero = memo(() => {
 							Szybka Rezerwacja
 						</Button>
 
-						<Button
-							type='alternative'
-							onClick={() => {
-								if (typeof window !== 'undefined') {
-									window.location.assign(LINKS.PHONE_TEL)
-								}
-							}}
-							className='w-full text-lg lg:text-2xl fill-white hover:fill-accent-blue flex items-center justify-center'
+						<a
+							href={LINKS.PHONE_TEL}
+							className='w-full inline-flex items-center justify-center rounded-xl lg:rounded-3xl transition-all px-6 py-2 md:px-10 md:py-3 lg:px-18 lg:py-5 text-white border border-white hover:fill-accent-blue 
+							fill-white hover:bg-white hover:text-primary-blue'
 						>
 							<PhoneIcon className='w-4 h-4 md:w-5 md:h-5 mr-2 fill-inherit' />
-							<span className='font-extrabold'>{SITE.PHONE_DISPLAY}</span>
-						</Button>
+							<span className='font-bold'>{SITE.PHONE_DISPLAY}</span>
+						</a>
 					</div>
 				</div>
 				{!isMobile && <HeroSlider />}

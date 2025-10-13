@@ -1,3 +1,6 @@
+// components/ui/Popover.jsx
+'use client'
+
 import {
 	autoUpdate,
 	flip,
@@ -11,15 +14,16 @@ import React, {
 	cloneElement,
 	useCallback,
 	useEffect,
+	useId,
 	useRef,
 	useState,
 } from 'react'
 import { createPortal } from 'react-dom'
 
-const Popover = ({
+export default function Popover({
 	children,
 	content,
-	trigger = 'click',
+	trigger = 'click', // 'click' | 'hover' | 'focus'
 	placement = 'top',
 	open: controlledOpen,
 	onOpenChange,
@@ -32,17 +36,18 @@ const Popover = ({
 	cancelText = 'Cancel',
 	arrow = true,
 	className = '',
-}) => {
+	zIndex = 90, // перекрываем слайдер/хедер
+}) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
 	const isControlled = controlledOpen !== undefined
 	const isOpen = isControlled ? controlledOpen : uncontrolledOpen
 
 	const arrowRef = useRef(null)
+	const labelId = useId()
 
 	const {
 		refs,
 		floatingStyles,
-		update,
 		placement: actualPlacement,
 		middlewareData,
 	} = useFloating({
@@ -65,49 +70,51 @@ const Popover = ({
 		if (!isControlled) setUncontrolledOpen(true)
 		onOpenChange?.(true)
 	}
-
 	const hide = () => {
 		if (!isControlled) setUncontrolledOpen(false)
 		onOpenChange?.(false)
 	}
-
 	const toggle = () => {
-		if (!isControlled) setUncontrolledOpen(prev => !prev)
+		if (!isControlled) setUncontrolledOpen(v => !v)
 		onOpenChange?.(!isOpen)
 	}
 
-	const handleClickOutside = useCallback(
+	const handleOutside = useCallback(
 		e => {
 			if (
 				refs.floating.current &&
 				!refs.floating.current.contains(e.target) &&
 				refs.reference.current &&
 				!refs.reference.current.contains(e.target)
-			) {
+			)
 				hide()
-			}
 		},
 		[refs.floating, refs.reference]
 	)
 
 	useEffect(() => {
-		if (isOpen) {
-			document.addEventListener('mousedown', handleClickOutside)
-		} else {
-			document.removeEventListener('mousedown', handleClickOutside)
+		if (!isOpen) return
+		document.addEventListener('mousedown', handleOutside)
+		document.addEventListener('touchstart', handleOutside, { passive: true })
+		const onEsc = e => e.key === 'Escape' && hide()
+		window.addEventListener('keydown', onEsc)
+		return () => {
+			document.removeEventListener('mousedown', handleOutside)
+			document.removeEventListener('touchstart', handleOutside)
+			window.removeEventListener('keydown', onEsc)
 		}
-		return () => document.removeEventListener('mousedown', handleClickOutside)
-	}, [isOpen, handleClickOutside])
+	}, [isOpen, handleOutside])
 
-	// Trigger props
+	// триггер
 	const child = React.Children.only(children)
 	const triggerProps = {
 		ref: refs.setReference,
+		'aria-haspopup': 'dialog',
+		'aria-expanded': isOpen ? 'true' : 'false',
+		'aria-controls': isOpen ? labelId : undefined,
 	}
-
-	if (trigger === 'click') {
-		triggerProps.onClick = toggle
-	} else if (trigger === 'hover') {
+	if (trigger === 'click') triggerProps.onClick = toggle
+	else if (trigger === 'hover') {
 		triggerProps.onMouseEnter = show
 		triggerProps.onMouseLeave = hide
 	} else if (trigger === 'focus') {
@@ -122,25 +129,31 @@ const Popover = ({
 		left: 'right',
 	}[actualPlacement.split('-')[0]]
 
+	const bodyReady = typeof document !== 'undefined'
+
 	return (
 		<>
 			{cloneElement(child, triggerProps)}
 
 			{isOpen &&
+				bodyReady &&
 				createPortal(
 					<div
 						ref={refs.setFloating}
-						style={floatingStyles}
+						role='dialog'
+						aria-labelledby={labelId}
+						style={{ ...floatingStyles, zIndex }}
 						className={clsx(
-							'absolute z-50 bg-white text-primary-blue border rounded-md shadow-lg p-3 text-sm max-w-64',
+							// карточка в твоём стиле
+							'absolute rounded-2xl bg-[#0E1B28] text-white border border-white/10 shadow-2xl p-0', // p-0: обертка сама держит паддинги
 							className
 						)}
 					>
-						{/* Стрелка */}
+						{/* Стрелка — ПОД контентом */}
 						{arrow && (
 							<div
 								ref={arrowRef}
-								className='absolute w-3 h-3 bg-white border border-gray-200 border-l-0 border-t-0 rotate-45 z-[-1]'
+								className='absolute w-3 h-3 bg-[#0E1B28] border-t border-l border-[#0E1B28] pointer-events-none z-0 rotate-45'
 								style={{
 									left:
 										middlewareData.arrow?.x != null
@@ -155,43 +168,44 @@ const Popover = ({
 							/>
 						)}
 
-						{confirm ? (
-							<>
-								<div className='font-medium text-gray-900 mb-1'>{title}</div>
-								{description && (
-									<div className='text-gray-500 text-sm mb-3'>
-										{description}
+						{/* Контент поверх стрелки */}
+						<div className='relative z-10 p-3 sm:p-4 text-sm max-w-72'>
+							{confirm ? (
+								<>
+									<div id={labelId} className='font-semibold mb-1'>
+										{title}
 									</div>
-								)}
-								<div className='flex justify-end space-x-2'>
-									<button
-										className='px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200'
-										onClick={() => {
-											onCancel?.()
-											hide()
-										}}
-									>
-										{cancelText}
-									</button>
-									<button
-										className='px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700'
-										onClick={() => {
-											onConfirm?.()
-											hide()
-										}}
-									>
-										{okText}
-									</button>
-								</div>
-							</>
-						) : (
-							content
-						)}
+									{description && (
+										<div className='text-white/80 mb-3'>{description}</div>
+									)}
+									<div className='flex justify-end gap-2'>
+										<button
+											className='px-3 py-1 rounded bg-white/10 hover:bg-white/15'
+											onClick={() => {
+												onCancel?.()
+												hide()
+											}}
+										>
+											{cancelText}
+										</button>
+										<button
+											className='px-3 py-1 rounded bg-accent-blue text-white hover:brightness-110'
+											onClick={() => {
+												onConfirm?.()
+												hide()
+											}}
+										>
+											{okText}
+										</button>
+									</div>
+								</>
+							) : (
+								<div id={labelId}>{content}</div>
+							)}
+						</div>
 					</div>,
 					document.body
 				)}
 		</>
 	)
 }
-
-export default Popover

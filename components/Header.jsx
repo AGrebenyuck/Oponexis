@@ -40,7 +40,7 @@ const Header = memo(() => {
 	}
 
 	return (
-		<header className='relative px-4 py-3 sm:px-10 md:px-16 sm:py-6'>
+		<header className='sticky top-0 z-[150] bg-primary-blue border-b border-white/10 px-4 py-3 sm:px-10 md:px-16 sm:py-6'>
 			<nav
 				className='flex items-center justify-between'
 				aria-label='Podstawowa nawigacja'
@@ -69,7 +69,7 @@ const Header = memo(() => {
 						</li>
 						<li>
 							<Link
-								href={'#services'}
+								href={'#oferta'}
 								className='transition-colors hover:text-accent-blue'
 								onClick={e => handleClick(e, 'services')}
 							>
@@ -88,7 +88,7 @@ const Header = memo(() => {
 					</ul>
 				) : (
 					<motion.ul
-						className='absolute top-full left-0 w-full flex flex-col items-end gap-6 py-6 px-4 font-semibold z-10 bg-primary-blue'
+						className='absolute top-full left-0 w-full flex flex-col items-end gap-6 py-6 px-4 font-semibold z-[300] bg-primary-blue'
 						variants={menuVariants}
 						initial='closed'
 						animate={menuOpen ? 'open' : 'closed'}
@@ -105,7 +105,7 @@ const Header = memo(() => {
 						</li>
 						<li>
 							<Link
-								href={'#oferta'}
+								href={'#services'}
 								className='transition-colors hover:text-accent-blue'
 								onClick={e => handleClick(e, 'services')}
 							>

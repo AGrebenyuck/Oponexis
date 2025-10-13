@@ -1,31 +1,34 @@
-// middleware.js
-import { clerkMiddleware } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
+// middleware.js (JS)
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
-// ЕДИНСТВЕННЫЙ middleware: default export от Clerk
-export default clerkMiddleware((auth, req) => {
-	const { pathname } = req.nextUrl
+const isPublic = createRouteMatcher([
+	'/', // главная
+	'/favicon.ico',
+	'/robots.txt',
+	'/sitemap.xml',
+	'/opengraph(.*)',
+	'/icon(.*)',
+	'/apple-icon(.*)',
+	'/_next/(.*)', // статика Next
+	'/images/(.*)',
+	'/fonts/(.*)',
+])
 
-	// Разрешаем индексировать только главную страницу
-	const isHome = pathname === '/' || pathname === ''
-	const res = NextResponse.next()
+export default clerkMiddleware(async (auth, req) => {
+	const ua = req.headers.get('user-agent') || ''
+	const isBot =
+		/Googlebot|Bingbot|DuckDuckBot|Yandex|facebookexternalhit|Twitterbot|LinkedInBot/i.test(
+			ua
+		)
 
-	if (!isHome) {
-		// Для всех остальных путей: noindex
-		res.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive')
-	}
+	// Публичное и боты — пропускаем
+	if (isPublic(req) || isBot) return
 
-	return res
+	// Остальное (НЕ /api, см. matcher ниже) — защищаем
+	await auth.protect()
 })
 
-// Важно: один matcher и он же для Clerk, и для наших заголовков
 export const config = {
-	matcher: [
-		// матчим всё кроме статики и системных путей
-		'/((?!_next/|images/|fonts/|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)$).*)',
-		// и явно — корень
-		'/',
-		// и API
-		'/(api|trpc)(.*)',
-	],
+	// не трогаем api вообще
+	matcher: ['/((?!api|.*\\..*|_next).*)', '/'],
 }

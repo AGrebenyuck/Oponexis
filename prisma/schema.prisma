@@ -73,6 +73,16 @@ model Lead {
   monthKey String?
 }
 
+model GoogleReviewsCache {
+  id        String   @id @default("google") // один глобальный ряд
+  payload   Json
+  rating    Float?
+  total     Int?
+  url       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Reservation {
   id                      String               @id @default(cuid())
   userId                  String

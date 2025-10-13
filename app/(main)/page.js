@@ -1,4 +1,6 @@
+import AvailabilityBar from '@/components/availabilityBar'
 import FAQSection from '@/components/FAQSection'
+import GoogleReviewsSlider from '@/components/GoogleReviewsSlider'
 import Hero from '@/components/Hero'
 import HowItWorksSection from '@/components/HowItWorksSection'
 import OffersGrid from '@/components/OfferGrid'
@@ -10,13 +12,15 @@ export default function Home() {
 	return (
 		<>
 			<Hero />
+			<AvailabilityBar />
 			<OffersGrid />
 			{/* <OffersSection /> */}
 			<HowItWorksSection />
 			<QuickReservation />
 			{/* <ServiceSection /> */}
 			{/* <ReservationSection /> */}
-			<TestimonialsSection />
+			{/* <TestimonialsSection /> */}
+			<GoogleReviewsSlider />
 			<FAQSection />
 			<FloatingCallButton />
 		</>

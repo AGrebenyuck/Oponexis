@@ -289,10 +289,10 @@ const Select = forwardRef(
 						ref={menuRef}
 						style={menuStyle}
 						className={`
-              absolute z-50 ${menuPosClass}
+              absolute z-50 ${menuPosClass} custom-select-menu
               rounded-xl border border-white/40 bg-primary-blue/95
               backdrop-blur-md shadow-xl p-1 ring-1 ring-white/30
-              max-h-[320px] overflow-y-auto
+              max-h-[320px] overflow-y-scroll
             `}
 					>
 						<div className='py-1'>

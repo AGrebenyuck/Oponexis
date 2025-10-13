@@ -11,7 +11,7 @@ import MultiServicePicker from './ui/MultiServicePicker'
 
 const LS_KEY = 'OPX_QR_FORM'
 
-// ── helpers ────────────────────────────────────────────────────────────────
+/* ───────────────── helpers ───────────────── */
 function validateName(raw) {
 	const name = (raw || '').trim()
 	if (!name) return 'Imię jest wymagane'
@@ -37,7 +37,6 @@ function normalizePhonePL(raw) {
 	}
 }
 function validatePhoneSoft(raw) {
-	// miękka walidacja do live-feedback (bez normalizacji)
 	const digits = String(raw || '').replace(/\D/g, '')
 	if (!digits) return 'Telefon jest wymagany'
 	if (digits.startsWith('48')) {
@@ -50,6 +49,62 @@ function validatePhoneSoft(raw) {
 	return null
 }
 
+/* ────────────── маленькие плашки над формой ────────────── */
+function InfoPills({ todayRanges }) {
+	return (
+		<div className='flex flex-wrap items-center gap-2 mb-3 sm:mb-4'>
+			<span className='inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 text-white/90 px-3 py-1 text-xs'>
+				<svg
+					width='14'
+					height='14'
+					viewBox='0 0 24 24'
+					aria-hidden
+					fill='none'
+					className='opacity-90'
+				>
+					<circle cx='12' cy='12' r='9' stroke='currentColor' strokeWidth='2' />
+					<path
+						d='M12 8v5l3 2'
+						stroke='currentColor'
+						strokeWidth='2'
+						strokeLinecap='round'
+						strokeLinejoin='round'
+					/>
+				</svg>
+				Oddzwonimy w <b className='font-semibold'>5&nbsp;min</b>
+			</span>
+
+			{todayRanges?.length ? (
+				<span className='inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 text-white/90 px-3 py-1 text-xs'>
+					<svg
+						width='14'
+						height='14'
+						viewBox='0 0 24 24'
+						aria-hidden
+						className='opacity-90'
+					>
+						<path
+							d='M5 12h14M12 5v14'
+							stroke='currentColor'
+							strokeWidth='2'
+							strokeLinecap='round'
+						/>
+					</svg>
+					Dziś wolne terminy:&nbsp;
+					<b className='font-semibold text-secondary-orange'>
+						{todayRanges.join(', ')}
+					</b>
+				</span>
+			) : (
+				<span className='inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 text-white/80 px-3 py-1 text-xs'>
+					Dziś miejsca szybko się zapełniają — zostaw zgłoszenie
+				</span>
+			)}
+		</div>
+	)
+}
+
+/* ───────────────── component ───────────────── */
 export default function QuickReservation({
 	title = 'Szybka rezerwacja',
 	dropdownPosition = 'top',
@@ -71,18 +126,21 @@ export default function QuickReservation({
 	const [phoneErr, setPhoneErr] = useState(null)
 	const [serviceErr, setServiceErr] = useState(null)
 
-	// refs (фокус на первом ошибочном)
+	// refs
 	const nameRef = useRef(null)
 	const phoneRef = useRef(null)
 
-	// debounce таймеры
+	// debounce timers
 	const nameTimer = useRef(null)
 	const phoneTimer = useRef(null)
 
-	// форс-перемонт мультиселекта для чистого визуального reset
+	// визуальный reset мультиселекта
 	const [formVersion, setFormVersion] = useState(0)
 
-	// ── загрузка прайса
+	// ⬇️ данные для плашек: «сегодняшние» окна
+	const [todayRanges, setTodayRanges] = useState([])
+
+	/* ── загрузка прайса ── */
 	useEffect(() => {
 		;(async () => {
 			try {
@@ -94,7 +152,28 @@ export default function QuickReservation({
 		})()
 	}, [])
 
-	// ── восстановление + ?sid=
+	/* ── загрузка доступности для плашек ── */
+	useEffect(() => {
+		let ignore = false
+		;(async () => {
+			try {
+				const res = await fetch('/api/availability/next?limit=12', {
+					cache: 'no-store',
+				})
+				const json = await res.json()
+				const ranges = json?.days?.today?.ranges || []
+				if (!ignore) setTodayRanges(ranges)
+			} catch (e) {
+				if (!ignore) setTodayRanges([])
+				console.warn('availability (quick form) failed:', e)
+			}
+		})()
+		return () => {
+			ignore = true
+		}
+	}, [])
+
+	/* ── восстановление + ?sid= ── */
 	useEffect(() => {
 		try {
 			const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
@@ -103,7 +182,7 @@ export default function QuickReservation({
 			if (Array.isArray(saved.serviceIds))
 				setServiceIds(saved.serviceIds.map(String))
 			if (saved.serviceId && !saved.serviceIds)
-				setServiceIds([String(saved.serviceId)]) // совместимость
+				setServiceIds([String(saved.serviceId)])
 		} catch {}
 		try {
 			const url = new URL(window.location.href)
@@ -125,7 +204,7 @@ export default function QuickReservation({
 		} catch {}
 	}, [])
 
-	// ── автоподстановка из карточек оферты
+	/* ── автоподстановка из карточек оферты ── */
 	useEffect(() => {
 		function onSelected(e) {
 			const id = String(e?.detail?.serviceId ?? '')
@@ -147,7 +226,7 @@ export default function QuickReservation({
 		return () => window.removeEventListener('opx:service-selected', onSelected)
 	}, [])
 
-	// ── sync в LS
+	/* ── sync в LS ── */
 	useEffect(() => {
 		const prev = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 		localStorage.setItem(LS_KEY, JSON.stringify({ ...prev, name }))
@@ -161,28 +240,27 @@ export default function QuickReservation({
 		localStorage.setItem(LS_KEY, JSON.stringify({ ...prev, serviceIds }))
 	}, [serviceIds])
 
-	// ── родительский id
+	/* ── первичная услуга ── */
 	const primaryServiceId = useMemo(() => {
 		const parentSet = new Set(services.map(s => String(s.id ?? '')))
 		return serviceIds.find(id => parentSet.has(id)) || serviceIds[0] || ''
 	}, [serviceIds, services])
 
-	// ── live-валидация (после взаимодействия) с debounce
+	/* ── live-валидация ── */
 	useEffect(() => {
 		if (!touchedName) return
 		clearTimeout(nameTimer.current)
-		nameTimer.current = setTimeout(() => {
-			setNameErr(validateName(name))
-		}, 250)
+		nameTimer.current = setTimeout(() => setNameErr(validateName(name)), 250)
 		return () => clearTimeout(nameTimer.current)
 	}, [name, touchedName])
 
 	useEffect(() => {
 		if (!touchedPhone) return
 		clearTimeout(phoneTimer.current)
-		phoneTimer.current = setTimeout(() => {
-			setPhoneErr(validatePhoneSoft(phone))
-		}, 250)
+		phoneTimer.current = setTimeout(
+			() => setPhoneErr(validatePhoneSoft(phone)),
+			250
+		)
 		return () => clearTimeout(phoneTimer.current)
 	}, [phone, touchedPhone])
 
@@ -191,7 +269,7 @@ export default function QuickReservation({
 		setServiceErr(primaryServiceId ? null : 'Wybierz co najmniej jedną usługę')
 	}, [primaryServiceId, touchedService])
 
-	// ── полный сброс формы
+	/* ── reset формы ── */
 	function resetForm() {
 		setName('')
 		setPhone('')
@@ -212,14 +290,13 @@ export default function QuickReservation({
 			)
 		} catch {}
 
-		setFormVersion(v => v + 1) // визуально обнуляем MultiServicePicker
+		setFormVersion(v => v + 1)
 	}
 
-	// ── submit
+	/* ── submit ── */
 	async function submitLead(e) {
 		e.preventDefault()
 
-		// помечаем все как "потроганные", валидируем
 		setTouchedName(true)
 		setTouchedPhone(true)
 		setTouchedService(true)
@@ -245,7 +322,6 @@ export default function QuickReservation({
 
 		setSending(true)
 
-		// оффлайн preflight
 		if (
 			typeof navigator !== 'undefined' &&
 			navigator &&
@@ -265,23 +341,18 @@ export default function QuickReservation({
 			return
 		}
 
-		gtmPush({
-			event: 'send_form',
-			lead_source: 'quick_form',
-		})
+		gtmPush({ event: 'send_form', lead_source: 'quick_form' })
 
-		// сопоставление имён (для уведомлений)
 		const idToName = new Map(services.map(s => [String(s.id), s.name]))
 		services.forEach(s =>
-			(s.additionalServices || []).forEach(sub => {
+			(s.additionalServices || []).forEach(sub =>
 				idToName.set(String(sub.id), sub.name)
-			})
+			)
 		)
 		const selectedServiceNames = (serviceIds || [])
 			.map(id => idToName.get(String(id)))
 			.filter(Boolean)
 
-		// таймаут для fetch (например, 10с)
 		const controller = new AbortController()
 		const t = setTimeout(() => controller.abort(), 10000)
 
@@ -306,32 +377,22 @@ export default function QuickReservation({
 			try {
 				json = await res.json()
 			} catch {
-				// если сервер вернул HTML (редирект/страница логина и т.п.)
 				throw new Error(`Bad response ${res.status}`)
 			}
 
-			if (!res.ok || !json?.ok) {
+			if (!res.ok || !json?.ok)
 				throw new Error(json?.error || `HTTP ${res.status}`)
-			}
 
 			setStatus('success')
 			setMessage('Zgłoszenie przyjęte. Wkrótce do Ciebie oddzwonimy.')
 			setOpen(true)
-
-			// полный reset формы (и визуального состояния селекта)
 			resetForm()
 
-			gtmPush({
-				event: 'lead_success',
-				lead_source: 'quick_form',
-			})
+			gtmPush({ event: 'lead_success', lead_source: 'quick_form' })
 		} catch (err) {
 			clearTimeout(t)
-			// ни в коем случае не rethrow — просто показываем дружелюбную ошибку
 			console.error('lead submit failed:', err)
 			setStatus('error')
-
-			// различим причины
 			const msg =
 				err?.name === 'AbortError'
 					? 'Przekroczono czas oczekiwania. Spróbuj ponownie.'
@@ -340,10 +401,8 @@ export default function QuickReservation({
 							.includes('failed to fetch')
 					? 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.'
 					: 'Nie udało się wysłać zgłoszenia. Spróbuj ponownie.'
-
 			setMessage(msg)
 			setOpen(true)
-
 			gtmPush({
 				event: 'lead_error',
 				lead_source: 'quick_form',
@@ -357,9 +416,13 @@ export default function QuickReservation({
 	return (
 		<section
 			id='reservation'
-			className='container-padding py-10 lg:py-16 relative z-[200] isolation-isolate'
+			// ↓ был z-[200]; опускаем форму ниже хедера (z-100) и AvailabilityBar (z-120)
+			className='container-padding py-10 lg:py-16 relative z-[50] isolation-isolate'
 		>
-			<h2 className='title text-white mb-6'>{title}</h2>
+			<h2 className='title text-white mb-3'>{title}</h2>
+
+			{/* Инфо-плашки (перезвон + сегодняшние окна) */}
+			<InfoPills todayRanges={todayRanges} />
 
 			<form
 				onSubmit={submitLead}
@@ -423,10 +486,10 @@ export default function QuickReservation({
 					)}
 				</div>
 
-				{/* Usługa (мультиселект) */}
+				{/* Usługa */}
 				<div className='sm:col-span-1'>
 					<MultiServicePicker
-						key={formVersion} // ⬅️ форс-reset визуального состояния
+						key={formVersion}
 						services={services}
 						value={serviceIds}
 						onChange={v => {
@@ -456,13 +519,7 @@ export default function QuickReservation({
 				</div>
 			</form>
 
-			<Modal
-				visible={open}
-				onClose={() => {
-					setOpen(false)
-					// при закрытии ничего не сбрасываем — reset уже сделан на success
-				}}
-			>
+			<Modal visible={open} onClose={() => setOpen(false)}>
 				<Result
 					status={status}
 					title={status === 'success' ? 'Sukces!' : 'Błąd'}

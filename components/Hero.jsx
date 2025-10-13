@@ -21,6 +21,7 @@ const Hero = memo(() => {
 
 	return (
 		<section
+			id='hero'
 			data-hero
 			aria-labelledby='hero-section'
 			className='relative max-h-[768px] h-full w-full'
@@ -50,24 +51,25 @@ const Hero = memo(() => {
 					</h1>
 					<p className='mb-10 sm:mb-11'>
 						Nie musisz czekać na wolny termin w tradycyjnym warsztacie ani stać
-						w korkach – Nasz mobilny serwis przyjedzie do ciebie .
+						w korkach – Nasz mobilny serwis przyjedzie do ciebie w ciągu 60
+						minut.
 					</p>
 					<div className='flex flex-col gap-2 sm:flex-row sm:gap-5'>
 						<Button
 							onClick={e => handleClick(e, 'reservation')}
 							type='default'
-							className='w-full'
+							className='w-full text-lg md:text-2xl'
 						>
 							Szybka Rezerwacja
 						</Button>
 
 						<a
 							href={LINKS.PHONE_TEL}
-							className='w-full inline-flex items-center justify-center rounded-xl lg:rounded-3xl transition-all px-6 py-2 md:px-10 md:py-3 lg:px-18 lg:py-5 text-white border border-white hover:fill-accent-blue 
+							className='w-full inline-flex items-center justify-center text-lg md:text-2xl rounded-xl lg:rounded-3xl transition-all px-6 py-2 md:px-10 md:py-3 lg:px-18 lg:py-5 text-white border border-white hover:fill-accent-blue 
 							fill-white hover:bg-white hover:text-primary-blue'
 						>
 							<PhoneIcon className='w-4 h-4 md:w-5 md:h-5 mr-2 fill-inherit' />
-							<span className='font-bold'>{SITE.PHONE_DISPLAY}</span>
+							<span>{SITE.PHONE_DISPLAY}</span>
 						</a>
 					</div>
 				</div>

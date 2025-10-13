@@ -17,6 +17,15 @@ export default {
 			'3xl': '1536px',
 		},
 		extend: {
+			keyframes: {
+				'opx-marquee': {
+					'0%': { transform: 'translateX(0%)' },
+					'100%': { transform: 'translateX(-50%)' },
+				},
+			},
+			animation: {
+				'opx-marquee': 'opx-marquee 22s linear infinite',
+			},
 			spacing: {
 				18: '4.5rem',
 			},

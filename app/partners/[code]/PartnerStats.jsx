@@ -10,15 +10,19 @@ export default function PartnerStats({ code }) {
 	const [data, setData] = useState(null)
 	const [loading, setLoading] = useState(true)
 	const [error, setError] = useState(null)
-	const [months, setMonths] = useState(1) // ⬅️ nowy stan
+	const [months, setMonths] = useState(3) // по умолчанию 6 мес
+	const DAYS_WINDOW = 30 // последние 30 дней в daily
 
 	async function load() {
 		setLoading(true)
 		setError(null)
 		try {
-			const res = await fetch(`/api/partners/${code}/stats?months=${months}`, {
-				cache: 'no-store',
-			})
+			const res = await fetch(
+				`/api/partners/${code}/stats?months=${months}&days=${DAYS_WINDOW}`,
+				{
+					cache: 'no-store',
+				}
+			)
 			if (!res.ok) throw new Error(`HTTP ${res.status}`)
 			const json = await res.json()
 			setData(json)
@@ -31,7 +35,7 @@ export default function PartnerStats({ code }) {
 
 	useEffect(() => {
 		load()
-	}, [code, months]) // ⬅️ przeładuj po zmianie months
+	}, [code, months])
 
 	const partnerLink = useMemo(() => {
 		if (typeof window === 'undefined') return ''
@@ -97,20 +101,23 @@ export default function PartnerStats({ code }) {
 				{'commissionPct' in totals ? (
 					<KPI
 						title='Stawka partnera'
-						value={`${totals.commissionPct ?? 0} %`}
+						value={`${totals.commissionPct ?? 10} %`}
 					/>
 				) : null}
 			</section>
 
-			{/* Wizyty dziennie */}
+			{/* Wizyty dziennie — фикс высота + скролл, sticky thead */}
 			<section className='bg-white border border-gray-200 rounded-xl overflow-hidden'>
 				<div className='px-4 py-3 border-b border-gray-200 font-semibold'>
-					Wizyty dziennie
+					Wizyty dziennie (ostatnie {DAYS_WINDOW} dni)
 				</div>
-				<div className='overflow-x-auto'>
+
+				<div className='max-h-80 overflow-y-auto'>
+					{' '}
+					{/* <-- фикс высота */}
 					<table className='w-full min-w-[360px] border-collapse text-sm'>
-						<thead>
-							<tr className='bg-gray-50 text-left'>
+						<thead className='sticky top-0 bg-gray-50'>
+							<tr className='text-left'>
 								{['Data', 'Wizyty', 'Połączenia QR'].map(label => (
 									<Th key={label}>{label}</Th>
 								))}
@@ -126,11 +133,9 @@ export default function PartnerStats({ code }) {
 							) : (
 								daily.map(row => (
 									<tr key={row.date}>
-										{[
-											<Td key='d'>{row.date}</Td>,
-											<Td key='v'>{row.visitors}</Td>,
-											<Td key='c'>{row.calls}</Td>,
-										]}
+										<Td>{row.date}</Td>
+										<Td>{row.visitors}</Td>
+										<Td>{row.calls}</Td>
 									</tr>
 								))
 							)}
@@ -160,8 +165,8 @@ export default function PartnerStats({ code }) {
 
 				<div className='overflow-x-auto'>
 					<table className='w-full min-w-[480px] border-collapse text-sm'>
-						<thead>
-							<tr className='bg-gray-50 text-left'>
+						<thead className='bg-gray-50'>
+							<tr className='text-left'>
 								{[
 									'Miesiąc',
 									'Wizyty',
@@ -183,15 +188,13 @@ export default function PartnerStats({ code }) {
 							) : (
 								data.monthly.map(row => (
 									<tr key={row.month}>
-										{[
-											<Td key='m'>{row.month}</Td>,
-											<Td key='v'>{row.visits}</Td>,
-											<Td key='c'>{row.calls}</Td>,
-											<Td key='o'>{row.orders}</Td>,
-											<Td key='k'>
-												<ZL value={row.commission} />
-											</Td>,
-										]}
+										<Td>{row.month}</Td>
+										<Td>{row.visits}</Td>
+										<Td>{row.calls}</Td>
+										<Td>{row.orders}</Td>
+										<Td>
+											<ZL value={row.commission} />
+										</Td>
 									</tr>
 								))
 							)}

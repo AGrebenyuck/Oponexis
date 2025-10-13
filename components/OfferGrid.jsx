@@ -189,9 +189,9 @@ function OfferCard({ data, priceMeta, onSelect }) {
 									className='opacity-90'
 									aria-hidden
 								>
-									<path fill='currentColor' d='M11 7h2v2h-2zm0 4h2v6h-2z' />
+									<path fill='#FD6D02' d='M11 7h2v2h-2zm0 4h2v6h-2z' />
 									<path
-										fill='currentColor'
+										fill='#FD6D02'
 										d='M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m0 18a8 8 0 1 1 8-8a8.009 8.009 0 0 1-8 8'
 									/>
 								</svg>
@@ -226,7 +226,10 @@ function OfferCard({ data, priceMeta, onSelect }) {
 			{/* FOOTNOTE */}
 			<div className='px-4 sm:px-5 lg:px-6 pb-4 text-[11px] text-white/70 min-h-[32px]'>
 				{isTyreHelp ? (
-					<span>* Nie wykonujemy naprawy opon na miejscu.</span>
+					<span>
+						<span className='text-secondary-orange'>*</span> Nie wykonujemy
+						naprawy opon na miejscu.
+					</span>
 				) : travelIncluded ? (
 					<span>* Dojazd do klienta jest wliczony w cenę usługi.</span>
 				) : (

@@ -5,6 +5,8 @@ import { DateTime } from 'luxon'
 
 const TIMEZONE = 'Europe/Warsaw' // Часовой пояс по умолчанию
 
+const CLOSE_GUARD_MIN = 1
+
 export async function getAvailability() {
 	// const { userId } = await auth()
 	// if (!userId) {
@@ -173,6 +175,12 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 	if (!dayAvailability?.isAvailable) return []
 
 	const { startTime: open, endTime: close } = dayAvailability
+	const effectiveCloseDT = dateObj
+		.set({
+			hour: Number(close.split(':')[0]),
+			minute: Number(close.split(':')[1]),
+		})
+		.minus({ minutes: CLOSE_GUARD_MIN })
 	const timeGap = availability.timeGap || step
 
 	const roundUpToGap = (time, gap) => {
@@ -184,10 +192,6 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 		hour: Number(open.split(':')[0]),
 		minute: Number(open.split(':')[1]),
 	})
-	const closeDT = dateObj.set({
-		hour: Number(close.split(':')[0]),
-		minute: Number(close.split(':')[1]),
-	})
 
 	const now = DateTime.now().setZone(TIMEZONE)
 	let adjustedOpenDT = openDT
@@ -197,6 +201,9 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 	}
 
 	adjustedOpenDT = roundUpToGap(adjustedOpenDT, timeGap)
+	if (adjustedOpenDT.plus({ minutes: duration }) > effectiveCloseDT) {
+		return []
+	}
 
 	const bookedTimes = new Set()
 	const blockedEnds = new Set()
@@ -222,7 +229,7 @@ export const generateAvailableSlots = async (date, duration, step = 30) => {
 	const availableSlots = []
 	let currentSlot = adjustedOpenDT
 
-	while (currentSlot < closeDT) {
+	while (currentSlot.plus({ minutes: duration }) <= effectiveCloseDT) {
 		const slotStart = timeToMinutes(currentSlot.toFormat('HH:mm'))
 		const slotEnd = slotStart + duration
 

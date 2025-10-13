@@ -12,6 +12,8 @@ const isPublic = createRouteMatcher([
 	'/_next/(.*)', // статика Next
 	'/images/(.*)',
 	'/fonts/(.*)',
+	'/partners', // если есть индекс
+	'/partners/(.*)', // /partners/[code] и пр.
 ])
 
 export default clerkMiddleware(async (auth, req) => {

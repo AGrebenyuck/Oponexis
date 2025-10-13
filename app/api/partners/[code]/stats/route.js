@@ -1,5 +1,6 @@
 // app/api/partners/[code]/stats/route.js
 import { db } from '@/lib/prisma'
+export const dynamic = 'force-dynamic'
 
 export async function GET(req, context) {
 	const params = await context.params
@@ -7,11 +8,12 @@ export async function GET(req, context) {
 
 	const url = new URL(req.url)
 	const months = Number(url.searchParams.get('months') || 12)
+	const days = Number(url.searchParams.get('days') || 30)
 
 	const partner = await db.partner.findUnique({ where: { code } })
 	if (!partner) return Response.json({ ok: false }, { status: 404 })
 
-	// --- totals ---
+	// totals
 	const hits = await db.referralHit.findMany({ where: { partnerCode: code } })
 	const uniqueVisitors = new Set(hits.map(h => h.visitorId)).size
 
@@ -24,15 +26,13 @@ export async function GET(req, context) {
 		(s, r) => s + (r.partnerCommissionAmount || 0),
 		0
 	)
-
 	const callsTotal = await db.callIntent.count({ where: { partnerCode: code } })
 
 	const cr = uniqueVisitors ? orders / uniqueVisitors : 0
 
-	// --- daily (визиты + звонки) ---
+	// daily — собираем визиты (по h.day) и звонки (по createdAt), потом берём последние N дней
 	const byDayVisits = new Map()
 	for (const h of hits) {
-		// h.day = 'YYYY-MM-DD' (у нас так сохраняется)
 		byDayVisits.set(h.day, (byDayVisits.get(h.day) || 0) + 1)
 	}
 
@@ -47,27 +47,22 @@ export async function GET(req, context) {
 		byDayCalls.set(d, (byDayCalls.get(d) || 0) + 1)
 	}
 
-	// Собираем объединённый daily
-	const daysSet = new Set([...byDayVisits.keys(), ...byDayCalls.keys()])
-	const daily = Array.from(daysSet)
-		.sort()
-		.map(date => ({
-			date,
-			visitors: byDayVisits.get(date) || 0, // визиты
-			calls: byDayCalls.get(date) || 0, // быстрые звонки
-		}))
+	const allDays = Array.from(
+		new Set([...byDayVisits.keys(), ...byDayCalls.keys()])
+	).sort()
+	const lastN = days > 0 ? allDays.slice(-days) : allDays
+	const daily = lastN.map(date => ({
+		date,
+		visitors: byDayVisits.get(date) || 0,
+		calls: byDayCalls.get(date) || 0,
+	}))
 
-	// --- monthly (в окне N месяцев): visits + calls + orders + commission ---
+	// monthly (окно N месяцев)
 	const from = new Date()
 	from.setMonth(from.getMonth() - (months - 1))
 	from.setDate(1)
 	from.setHours(0, 0, 0, 0)
 
-	const hitsWindow = await db.referralHit.findMany({
-		where: { partnerCode: code, createdAt: { gte: from } },
-		select: { createdAt: true },
-		orderBy: { createdAt: 'asc' },
-	})
 	const callsWindow = await db.callIntent.findMany({
 		where: { partnerCode: code, createdAt: { gte: from } },
 		select: { createdAt: true },
@@ -79,38 +74,44 @@ export async function GET(req, context) {
 		orderBy: { createdAt: 'asc' },
 	})
 
+	const ym = d =>
+		`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+
 	const byMonth = new Map()
-	// visits
-	for (const h of hitsWindow) {
-		const d = h.createdAt
-		const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-		const cur = byMonth.get(ym) || {
-			visits: 0,
-			calls: 0,
-			orders: 0,
-			commission: 0,
+
+	// visits: используем h.day (YYYY-MM-DD), фильтруем >= первого месяца окна
+	const fromStr = from.toISOString().slice(0, 7) // 'YYYY-MM'
+	for (const h of hits) {
+		const ymKey = h.day.slice(0, 7)
+		if (ymKey >= fromStr) {
+			const cur = byMonth.get(ymKey) || {
+				visits: 0,
+				calls: 0,
+				orders: 0,
+				commission: 0,
+			}
+			cur.visits += 1
+			byMonth.set(ymKey, cur)
 		}
-		cur.visits += 1
-		byMonth.set(ym, cur)
 	}
+
 	// calls
 	for (const c of callsWindow) {
-		const d = c.createdAt
-		const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-		const cur = byMonth.get(ym) || {
+		const key = ym(c.createdAt)
+		const cur = byMonth.get(key) || {
 			visits: 0,
 			calls: 0,
 			orders: 0,
 			commission: 0,
 		}
 		cur.calls += 1
-		byMonth.set(ym, cur)
+		byMonth.set(key, cur)
 	}
+
 	// orders + commission
 	for (const r of resWindow) {
-		const d = r.createdAt
-		const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-		const cur = byMonth.get(ym) || {
+		const key = ym(r.createdAt)
+		const cur = byMonth.get(key) || {
 			visits: 0,
 			calls: 0,
 			orders: 0,
@@ -118,26 +119,25 @@ export async function GET(req, context) {
 		}
 		cur.orders += 1
 		cur.commission += r.partnerCommissionAmount || 0
-		byMonth.set(ym, cur)
+		byMonth.set(key, cur)
 	}
 
+	// выстраиваем месяцы слева направо
 	const monthly = []
 	const cursor = new Date(from)
 	const end = new Date()
 	end.setDate(1)
 	end.setHours(0, 0, 0, 0)
 	while (cursor <= end) {
-		const ym = `${cursor.getFullYear()}-${String(
-			cursor.getMonth() + 1
-		).padStart(2, '0')}`
-		const e = byMonth.get(ym) || {
+		const key = ym(cursor)
+		const e = byMonth.get(key) || {
 			visits: 0,
 			calls: 0,
 			orders: 0,
 			commission: 0,
 		}
 		monthly.push({
-			month: ym,
+			month: key,
 			visits: e.visits,
 			calls: e.calls,
 			orders: e.orders,
@@ -154,11 +154,9 @@ export async function GET(req, context) {
 			calls: callsTotal,
 			cr,
 			commission: Number(commissionTotal.toFixed(2)),
-			commissionPct: partner.commissionPct,
+			commissionPct: partner.commissionPct, // 10%
 		},
-		daily, // [{ date, visitors, calls }]
-		monthly, // [{ month, visits, calls, orders, commission }]
+		daily,
+		monthly,
 	})
 }
-
-export const dynamic = 'force-dynamic'

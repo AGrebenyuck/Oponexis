@@ -112,7 +112,7 @@ export default function FloatingCallButton({
 			tooltip={tooltip}
 			icon={AnimatedIcon}
 			onClick={callNow}
-			position={{ bottom: 20, right: 20 }}
+			position={{ bottom: 30, right: 30 }}
 			zIndex={1100}
 			className='shadow-xl rounded-full'
 			// Можно подкрутить стили, чтобы вписаться в твой UI:

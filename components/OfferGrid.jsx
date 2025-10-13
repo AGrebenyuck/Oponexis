@@ -10,7 +10,7 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 
 import { getServices } from '@/actions/service'
 import Button from '@/components/ui/button'
-import Popover from '@/components/ui/Popover'
+import Popover from './ui/popover'
 
 const LS_KEY = 'OPX_QR_FORM'
 

@@ -9,11 +9,11 @@ import { Navigation } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 
 import { getServices } from '@/actions/service'
-import Button from '@/components/ui/button'
 import Popover from './ui/popover'
 
 const LS_KEY = 'OPX_QR_FORM'
 
+/* ================= Icons ================= */
 function Arrow({ dir = 'left' }) {
 	return (
 		<svg width='22' height='22' viewBox='0 0 24 24' fill='none' aria-hidden>
@@ -37,17 +37,9 @@ function Arrow({ dir = 'left' }) {
 		</svg>
 	)
 }
-
-function ClockIcon({ className = '' }) {
+function ClockIcon() {
 	return (
-		<svg
-			className={className}
-			width='14'
-			height='14'
-			viewBox='0 0 24 24'
-			fill='none'
-			aria-hidden
-		>
+		<svg width='14' height='14' viewBox='0 0 24 24' fill='none' aria-hidden>
 			<circle cx='12' cy='12' r='9' stroke='currentColor' strokeWidth='2' />
 			<path
 				d='M12 7v5l3 2'
@@ -60,62 +52,110 @@ function ClockIcon({ className = '' }) {
 	)
 }
 
+/* ================= Data ================= */
 const RAW = [
 	{
-		key: '1',
+		key: 'Wymiana i wyważanie kół',
 		title: 'Wymiana i wyważanie kół',
 		image: '/wheel-balancing.png',
 		alt: 'Wymiana i wyważanie kół',
 		duration: 'ok. 45–60 min',
-		travelIncluded: true,
+		chips: [{ label: 'Dojazd w cenie', mark: '*' }],
+		footnotes: [
+			{ mark: '*', text: 'Dojazd do klienta jest wliczony w cenę usługi.' },
+			{
+				mark: '**',
+				text: 'Cena stała — niezależnie od liczby kół (1–4 szt.).',
+			},
+		],
+		priceMark: '**',
 	},
 	{
-		key: '2',
+		key: 'Wymiana oleju',
 		title: 'Wymiana oleju',
 		image: '/oil-change.png',
 		alt: 'Wymiana oleju',
 		duration: 'ok. 30–45 min',
-		travelIncluded: true,
+		chips: [{ label: 'Dojazd w cenie', mark: '*' }],
+		footnotes: [
+			{ mark: '*', text: 'Dojazd do klienta jest wliczony w cenę usługi.' },
+		],
+		priceMark: '',
 	},
 	{
-		key: '4',
+		key: 'Sezonowa wymiana opon',
 		title: 'Sezonowa wymiana opon',
 		image: '/winter-summer.png',
 		alt: 'Sezonowa wymiana opon',
 		duration: 'ok. 60–90 min',
-		travelIncluded: true,
+		chips: [{ label: 'Dojazd w cenie', mark: '*' }],
+		footnotes: [
+			{ mark: '*', text: 'Dojazd do klienta jest wliczony w cenę usługi.' },
+			{
+				mark: '**',
+				text: 'Cena stała — niezależnie od liczby kół (1–4 szt.).',
+			},
+		],
+		priceMark: '**',
 	},
 	{
-		key: 'help-tyre',
-		title: 'Pomoc z oponą',
+		key: 'Pomoc z oponą',
+		title: 'Pomoc z oponą *',
 		image: '/tyre-help.jpg',
 		alt: 'Pomoc z oponą',
 		duration: 'ok. 30–40 min',
-		travelIncluded: true,
+		chips: [],
+		footnotes: [{ mark: '*', text: 'Nie wykonujemy naprawy opon na miejscu.' }],
+		priceMark: '',
 		isTyreHelp: true,
 	},
 	{
-		key: '5',
+		key: 'Przechowywanie kół w naszym magazynie',
 		title: 'Przechowywanie kół w naszym magazynie',
 		image: '/wheel-hold.png',
 		alt: 'Przechowywanie kół',
 		duration: null,
-		travelIncluded: null,
+		chips: [],
+		footnotes: [],
+		priceMark: '',
 	},
 ]
 
+/* ================= Card ================= */
+function renderTitleWithMark(title) {
+	// Заменяем одиночные * на оранжевую звездочку (не трогаем **)
+	// Простой кейс: "Pomoc z oponą*" -> "Pomoc z oponą<sup class=...>*</sup>"
+	return title.replace(
+		/(^|[^*])\*(?!\*)/g,
+		(_, p1) => `${p1}<span class="text-secondary-orange ">*</span>`
+	)
+}
+
 function OfferCard({ data, priceMeta, onSelect }) {
-	const { title, image, alt, duration, travelIncluded, isTyreHelp } = data
+	const {
+		title,
+		image,
+		alt,
+		duration,
+		chips = [],
+		footnotes = [],
+		priceMark = '',
+		isTyreHelp = false,
+	} = data
+
 	const hasDiscount =
 		priceMeta?.originalPrice && priceMeta.originalPrice > priceMeta.price
 
 	return (
 		<div
-			className='group relative rounded-3xl border border-white/15 bg-white/5 hover:border-white/25 hover:shadow-[0_6px_30px_-10px_rgba(0,0,0,0.45)]
-                 overflow-hidden transition-all h-full grid grid-rows-[auto,auto,auto,1fr,auto,auto]'
+			className='group relative w-full h-full box-border
+                 flex flex-col rounded-3xl border border-white/15 bg-white/5
+                 hover:border-white/25 hover:shadow-[0_6px_30px_-10px_rgba(0,0,0,0.45)]
+                 overflow-hidden transition-all'
+			data-card
 		>
-			{/* IMG */}
-			<div className='relative w-full aspect-[5/4] overflow-hidden'>
+			{/* TOP — IMG */}
+			<div className='relative w-full aspect-[5/4] overflow-hidden shrink-0'>
 				<Image
 					src={image}
 					alt={alt || title}
@@ -123,123 +163,148 @@ function OfferCard({ data, priceMeta, onSelect }) {
 					className='object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]'
 					sizes='(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw'
 				/>
-				<div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/20' />
 				{duration && (
 					<span className='absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-full bg-[rgba(14,27,40,0.85)] text-white/95 border border-white/10 px-2.5 py-1 text-[11px] font-medium'>
 						<ClockIcon /> {duration}
 					</span>
 				)}
+				<div className='pointer-events-none absolute inset-0 bg-gradient-to-b from-black/0 via-black/0 to-black/20' />
 			</div>
 
-			{/* TITLE + PRICE */}
-			<div className='p-4 sm:p-5 lg:p-6 pt-4 flex items-center justify-between gap-3'>
-				<h3 className='text-white text-base sm:text-lg lg:text-xl font-semibold leading-snug line-clamp-2 pr-2'>
-					{title}
-				</h3>
-				<span
-					className='inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 self-start translate-y-[2px]'
-					aria-label='Cena usługi'
+			{/* MIDDLE — CONTENT (тянется). 
+          СТАБИЛИЗАЦИЯ: даём head/chips фиксированные min-h */}
+			<div className='flex-1 flex flex-col p-4 sm:p-5 lg:p-6 pt-2'>
+				{/* HEAD: title + price */}
+				<div
+					className='flex items-center justify-between gap-3 min-w-0
+                     min-h-[50px] md:min-h-[78px]'
+					data-slot='head'
 				>
-					{hasDiscount && (
-						<span className='text-gray-300 line-through text-xs sm:text-sm'>
-							{priceMeta.originalPrice} zł
-						</span>
-					)}
-					<span className='text-secondary-orange text-sm sm:text-base lg:text-lg font-extrabold whitespace-nowrap'>
-						{priceMeta?.price != null ? `${priceMeta.price} zł` : '— zł'}
-					</span>
-				</span>
-			</div>
-
-			{/* META / opis */}
-			<div className='px-4 sm:px-5 lg:px-6 pb-1 min-h-[60px] md:min-h-[70px]'>
-				{isTyreHelp ? (
-					<div className='space-y-2'>
-						<Popover
-							placement='top'
-							className='max-w-72'
-							content={
-								<div className='space-y-2'>
-									<ul className='list-disc list-inside space-y-1 text-white'>
-										<li>
-											Dopompujemy i sprawdzimy koło (wentyl, ubytki,
-											uszkodzenia).
-										</li>
-										<li>
-											Spróbujemy tymczasowo załatać, by{' '}
-											<b>bezpiecznie dojechać</b> do serwisu lub domu.
-										</li>
-										<li>
-											Możemy też kupić oponę o tych samych parametrach i
-											wymienić na miejscu (jeśli dostępna).
-										</li>
-									</ul>
-									<hr className='border-gray-200' />
-									<p className='text-secondary-orange text-xs'>
-										* Nie wykonujemy naprawy opon na miejscu.
-									</p>
-								</div>
-							}
-						>
-							<button className='inline-flex items-center gap-1 rounded-full bg-white/10 text-white/85 text-[11px] px-2.5 py-[6px] hover:bg-white/15 underline underline-offset-3'>
-								<svg
-									width='14'
-									height='14'
-									viewBox='0 0 24 24'
-									className='opacity-90'
-									aria-hidden
-								>
-									<path fill='#FD6D02' d='M11 7h2v2h-2zm0 4h2v6h-2z' />
-									<path
-										fill='#FD6D02'
-										d='M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m0 18a8 8 0 1 1 8-8a8.009 8.009 0 0 1-8 8'
-									/>
-								</svg>
-								Szczegóły
-							</button>
-						</Popover>
-					</div>
-				) : (
-					<div className='flex flex-wrap items-center gap-2 text-xs'>
-						{travelIncluded && (
-							<span className='inline-flex items-center gap-1 rounded-full bg-white/10 text-white px-2.5 py-1'>
-								<span aria-hidden>★</span> Dojazd w cenie
+					<h3
+						className='text-white text-base sm:text-lg lg:text-xl font-semibold leading-snug pr-2 min-w-0'
+						dangerouslySetInnerHTML={{ __html: renderTitleWithMark(title) }}
+					/>
+					<span
+						className='inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1'
+						aria-label='Cena usługi'
+					>
+						{hasDiscount && (
+							<span className='text-gray-300 line-through text-xs sm:text-sm'>
+								{priceMeta.originalPrice} zł
 							</span>
 						)}
-					</div>
-				)}
-			</div>
-
-			{/* SPACER */}
-			<div className='px-4 sm:px-5 lg:px-6' />
-
-			{/* CTA */}
-			<div className='px-4 sm:px-5 lg:px-6 pb-3'>
-				<Button
-					onClick={() => onSelect(title)}
-					className='w-full p-4 sm:p-5 lg:px-2 bg-white text-primary-blue hover:bg-white/90'
-				>
-					Złóż zgłoszenie
-				</Button>
-			</div>
-
-			{/* FOOTNOTE */}
-			<div className='px-4 sm:px-5 lg:px-6 pb-4 text-[11px] text-white/70 min-h-[32px]'>
-				{isTyreHelp ? (
-					<span>
-						<span className='text-secondary-orange'>*</span> Nie wykonujemy
-						naprawy opon na miejscu.
+						<span className='text-secondary-orange text-sm sm:text-base lg:text-lg font-extrabold whitespace-nowrap'>
+							{priceMeta?.price != null
+								? `${priceMeta.price} zł ${priceMark}`
+								: '— zł'}
+						</span>
 					</span>
-				) : travelIncluded ? (
-					<span>* Dojazd do klienta jest wliczony w cenę usługi.</span>
-				) : (
-					<span className='opacity-0'>placeholder</span>
-				)}
+				</div>
+
+				{/* CHIPS */}
+				<div className='mt-3 min-h-[34px] md:min-h-[38px]' data-slot='chips'>
+					{isTyreHelp ? (
+						<div className='inline-block'>
+							<Popover
+								placement='top'
+								className='max-w-72'
+								content={
+									<div className='space-y-2'>
+										<ul className='list-disc list-inside space-y-1 text-white'>
+											<li>Dopompujemy i sprawdzimy koło.</li>
+											<li>
+												Spróbujemy tymczasowo załatać, by bezpiecznie dojechać.
+											</li>
+											<li>
+												Możemy też wymienić oponę na miejscu (jeśli dostępna).
+											</li>
+										</ul>
+										<hr className='border-gray-200' />
+										<p className='text-secondary-orange text-xs'>
+											* Nie wykonujemy naprawy opon na miejscu.
+										</p>
+									</div>
+								}
+							>
+								<button className='inline-flex items-center gap-1 rounded-full bg-white/10 text-white/85 text-[11px] px-2.5 py-[6px] hover:bg-white/15 underline underline-offset-3'>
+									<svg
+										width='14'
+										height='14'
+										viewBox='0 0 24 24'
+										className='opacity-90'
+										aria-hidden
+									>
+										<path fill='#FD6D02' d='M11 7h2v2h-2zm0 4h2v6h-2z' />
+										<path
+											fill='#FD6D02'
+											d='M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2m0 18a8 8 0 1 1 8-8a8.009 8.009 0 0 1-8 8'
+										/>
+									</svg>
+									Szczegóły
+								</button>
+							</Popover>
+						</div>
+					) : (
+						<div className='flex flex-wrap items-center gap-2 text-xs'>
+							{chips.map((c, i) => (
+								<span
+									key={i}
+									className='inline-flex items-center gap-1 rounded-full bg-white/10 text-white px-2.5 py-1'
+								>
+									{c.label}
+									{c.mark && <b className='text-secondary-orange'>{c.mark}</b>}
+								</span>
+							))}
+						</div>
+					)}
+				</div>
+
+				{/* spacer — выталкивает кнопку вниз, но НЕ влияет на сноски */}
+				<div className='mt-auto' />
+			</div>
+
+			{/* === BOTTOM: кнопка и сноски === */}
+			<div className='w-full flex flex-col flex-grow md:flex-none'>
+				{/* Кнопка — одинаковая линия на десктопе */}
+				<div className='px-4 sm:px-5 lg:px-6 pb-3'>
+					<button
+						onClick={() => onSelect(data.key)}
+						className='w-full h-[52px] sm:h-[56px] rounded-xl lg:rounded-3xl
+                 bg-white text-primary-blue hover:bg-white/90 transition
+                 text-lg md:text-xl font-medium whitespace-nowrap'
+					>
+						Złóż zgłoszenie
+					</button>
+				</div>
+
+				{/* Сноски */}
+				<div
+					className={`
+      px-4 sm:px-5 lg:px-6 pb-4 text-[11px] text-white/75 leading-[1.35]
+      md:flex md:flex-col md:justify-end  /* ← прижимаем к низу только на десктопе */
+      md:min-h-[70px]                     /* ← одинаковая высота зоны на Swiper */
+      h-auto                              /* ← на мобилке — авто */
+    `}
+				>
+					{footnotes.length ? (
+						<ul className='space-y-[2px]'>
+							{footnotes.map(n => (
+								<li key={n.mark} className='flex'>
+									<span className='text-secondary-orange mr-1'>{n.mark}</span>
+									<span>{n.text}</span>
+								</li>
+							))}
+						</ul>
+					) : (
+						<span className='opacity-0'>—</span>
+					)}
+				</div>
 			</div>
 		</div>
 	)
 }
 
+/* ================= Grid Wrapper ================= */
 export default function OfferGrid({ title = 'NASZA OFERTA' }) {
 	const [pricesPayload, setPricesPayload] = useState(null)
 
@@ -273,7 +338,7 @@ export default function OfferGrid({ title = 'NASZA OFERTA' }) {
 		return map
 	}, [pricesPayload])
 
-	function selectFromCard(serviceTitle) {
+	const selectFromCard = serviceTitle => {
 		const meta = byName.get(serviceTitle)
 		if (meta?.id) {
 			const id = String(meta.id)
@@ -283,93 +348,78 @@ export default function OfferGrid({ title = 'NASZA OFERTA' }) {
 				new CustomEvent('opx:service-selected', { detail: { serviceId: id } })
 			)
 		}
-		try {
-			window.dataLayer = window.dataLayer || []
-			window.dataLayer.push({
-				event: 'offer_cta_click',
-				service_title: serviceTitle,
-				service_id: meta?.id || null,
-			})
-		} catch {}
 		document
 			?.getElementById('reservation')
 			?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 	}
 
-	// ✅ GRID — только мобильные (< md)
-	const Grid = (
-		<ul className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:hidden'>
-			{RAW.map(s => (
-				<li key={s.key} className='h-full'>
-					<OfferCard
-						data={s}
-						priceMeta={byName.get(s.title)}
-						onSelect={selectFromCard}
-					/>
-				</li>
-			))}
-		</ul>
-	)
-
-	// ✅ SLIDER — планшет и десктоп (≥ md)
-	const Slider = (
-		<div className='hidden md:block'>
-			<div className='relative'>
-				<button
-					className='custom-prev absolute -left-12 md:top-1/2 md:-translate-y-1/2 w-11 h-11 rounded-full bg-white text-primary-blue shadow
-                     flex items-center justify-center hover:scale-105 transition z-[5]'
-					aria-label='Poprzedni'
-				>
-					<Arrow dir='left' />
-				</button>
-				<button
-					className='custom-next absolute -right-12 md:top-1/2 md:-translate-y-1/2 w-11 h-11 rounded-full bg-white text-primary-blue shadow
-                     flex items-center justify-center hover:scale-105 transition z-[5]'
-					aria-label='Następny'
-				>
-					<Arrow dir='right' />
-				</button>
-
-				<Swiper
-					modules={[Navigation]}
-					navigation={{ prevEl: '.custom-prev', nextEl: '.custom-next' }}
-					spaceBetween={20}
-					slidesPerGroup={1}
-					breakpoints={{
-						768: { slidesPerView: 2, spaceBetween: 20 }, // md
-						1024: { slidesPerView: 3, spaceBetween: 24 }, // lg
-						1440: { slidesPerView: 4, spaceBetween: 28 }, // 2xl+
-					}}
-					loop
-					className='!overflow-hidden'
-				>
-					{RAW.map(s => (
-						<SwiperSlide key={s.key} className='!h-auto'>
-							<div className='h-full'>
-								<OfferCard
-									data={s}
-									priceMeta={byName.get(s.title)}
-									onSelect={selectFromCard}
-								/>
-							</div>
-						</SwiperSlide>
-					))}
-				</Swiper>
-			</div>
-		</div>
-	)
-
 	return (
 		<section
-			aria-labelledby='nasza-oferta'
 			id='services'
+			aria-labelledby='nasza-oferta'
 			className='container-padding pt-8 pb-10 lg:pb-16 flex flex-col gap-6'
 		>
 			<h2 id='nasza-oferta' className='title text-white'>
 				{title}
 			</h2>
-			{Grid}
-			{Slider}
+
+			{/* Mobile grid */}
+			<ul className='grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 md:hidden'>
+				{RAW.map(s => (
+					<li key={s.key} className='h-full'>
+						<OfferCard
+							data={s}
+							priceMeta={byName.get(s.key)}
+							onSelect={selectFromCard}
+						/>
+					</li>
+				))}
+			</ul>
+
+			{/* Slider (md+) */}
+			<div className='hidden md:block'>
+				<div className='relative'>
+					<button
+						className='custom-prev absolute -left-12 md:top-1/2 md:-translate-y-1/2 w-11 h-11 rounded-full bg-white text-primary-blue shadow flex items-center justify-center hover:scale-105 transition z-[5]'
+						aria-label='Poprzedni'
+					>
+						<Arrow dir='left' />
+					</button>
+					<button
+						className='custom-next absolute -right-12 md:top-1/2 md:-translate-y-1/2 w-11 h-11 rounded-full bg-white text-primary-blue shadow flex items-center justify-center hover:scale-105 transition z-[5]'
+						aria-label='Następny'
+					>
+						<Arrow dir='right' />
+					</button>
+
+					<Swiper
+						modules={[Navigation]}
+						navigation={{ prevEl: '.custom-prev', nextEl: '.custom-next' }}
+						spaceBetween={20}
+						slidesPerGroup={1}
+						breakpoints={{
+							768: { slidesPerView: 2, spaceBetween: 20 },
+							1024: { slidesPerView: 3, spaceBetween: 24 },
+							1440: { slidesPerView: 4, spaceBetween: 28 },
+						}}
+						loop
+						className=''
+					>
+						{RAW.map(s => (
+							<SwiperSlide key={s.key} className='!h-auto'>
+								{/* ВАЖНО: wrapper тянет карточку на всю высоту слайда */}
+								<div className='h-full flex'>
+									<OfferCard
+										data={s}
+										priceMeta={byName.get(s.key)}
+										onSelect={selectFromCard}
+									/>
+								</div>
+							</SwiperSlide>
+						))}
+					</Swiper>
+				</div>
+			</div>
 		</section>
 	)
 }

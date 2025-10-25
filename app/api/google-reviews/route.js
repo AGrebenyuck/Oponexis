@@ -5,17 +5,18 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 // ── настройки ─────────────────────────────────────────────
-const TTL_MS = 7 * 24 * 60 * 60 * 1000
+const TTL_MS = 1 * 24 * 60 * 60 * 1000 // обновление каждые 24ч
 const LOCALE = 'pl'
 const DEFAULT_MIN_RATING = 4
-const MAX_V1 = 10 // v1 Place Details всё равно вернёт до 5, но слайсим до 10
+const MAX_V1 = 10 // максимум отзывов
+const LIMIT_DEFAULT = 5 // сколько показываем по умолчанию
 
-// опционально закрепить отзывы
+// закрепленные отзывы и авторы
 const PINNED_REVIEW_IDS = [
 	// 'ChZDSUhNMG9nS0VJQ0FnSUNmMWVQeV9nEAE',
 ]
 const PINNED_AUTHORS = [
-	// 'Jan Kowalski'
+	// 'Jan Kowalski',
 ]
 
 // ── нормализация ──────────────────────────────────────────
@@ -34,8 +35,8 @@ function normalizeLegacy(json) {
 		rating: Number(r?.rating || 0),
 		relative_time_description: r?.relative_time_description || '',
 		text: r?.text || '',
-		time: r?.time ?? 0, // unix seconds
-		language: r?.language || '',
+		time: r?.time ?? 0,
+		language: r?.language || LOCALE,
 		author_url: r?.author_url || '',
 	}))
 	return { url, rating, total, reviews, source: 'legacy' }
@@ -46,6 +47,7 @@ function normalizeV1(json) {
 	const rating = Number(json?.rating || 0)
 	const total = Number(json?.userRatingCount || 0)
 	const raw = Array.isArray(json?.reviews) ? json.reviews : []
+
 	const reviews = raw.map((r, i) => {
 		const text =
 			(r?.text && typeof r.text.text === 'string' ? r.text.text : '') ||
@@ -53,10 +55,10 @@ function normalizeV1(json) {
 				? r.originalText.text
 				: '') ||
 			''
-		// У v1 нет стабильного id, соберём детерминированный
 		const id = `${
 			r?.authorAttribution?.uri || r?.authorAttribution?.displayName || 'user'
 		}|${r?.publishTime || i}`
+
 		return {
 			id,
 			author_name: r?.authorAttribution?.displayName || 'Użytkownik Google',
@@ -88,7 +90,7 @@ function selectReviews(all, { minRating = DEFAULT_MIN_RATING } = {}) {
 
 	const rest = textful
 		.filter(r => !pinnedIds.has(r.id))
-		.sort((a, b) => (b.time || 0) - (a.time || 0)) // новые выше
+		.sort((a, b) => (b.time || 0) - (a.time || 0))
 
 	return [...pinnedById, ...pinnedByAuthor, ...rest]
 }
@@ -103,10 +105,12 @@ async function fetchLegacy(placeId, key) {
 		'user_ratings_total',
 		'reviews',
 	].join('%2C')
+
 	const endpoint =
 		`https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(
 			placeId
 		)}` + `&language=${LOCALE}&fields=${fields}&key=${encodeURIComponent(key)}`
+
 	const res = await fetch(endpoint, { cache: 'no-store' })
 	if (!res.ok) throw new Error(`Google legacy HTTP ${res.status}`)
 	const json = await res.json()
@@ -120,7 +124,7 @@ async function fetchV1(placeId, key) {
 
 	const url =
 		`https://places.googleapis.com/v1/${name}` +
-		`?languageCode=${encodeURIComponent(LOCALE)}` // без reviews.* — их тут нет
+		`?languageCode=${encodeURIComponent(LOCALE)}`
 
 	const fieldMask = [
 		'googleMapsUri',
@@ -163,10 +167,10 @@ export async function GET(req) {
 		)
 		const limit = Math.max(
 			1,
-			Math.min(MAX_V1, Number(searchParams.get('limit') || MAX_V1))
+			Math.min(MAX_V1, Number(searchParams.get('limit') || LIMIT_DEFAULT))
 		)
 		const debug = searchParams.get('debug') === '1'
-		const force = searchParams.get('force') === '1' // ручное обновление кэша
+		const force = searchParams.get('force') === '1'
 
 		const key = process.env.GOOGLE_PLACES_API_KEY
 		const placeId = process.env.GOOGLE_PLACE_ID
@@ -189,6 +193,7 @@ export async function GET(req) {
 		let v1ErrorBody = null
 
 		if (stale) {
+			console.log('[google-reviews] Updating cached reviews...')
 			let fresh
 			try {
 				fresh = await fetchV1(placeId, key)
@@ -200,6 +205,21 @@ export async function GET(req) {
 				)
 				fresh = await fetchLegacy(placeId, key)
 			}
+
+			if (!fresh || typeof fresh !== 'object') {
+				console.error('[google-reviews] Fetch returned empty payload:', fresh)
+				throw new Error('Empty payload from Google API')
+			}
+
+			// если в БД уже есть старые — объединяем
+			const existing = row?.payload?.reviews || []
+			const freshReviews = Array.isArray(fresh.reviews) ? fresh.reviews : []
+			const merged = [
+				...freshReviews,
+				...existing.filter(r => !freshReviews.some(f => f.id === r.id)),
+			].sort((a, b) => (b.time || 0) - (a.time || 0))
+
+			fresh.reviews = merged.slice(0, MAX_V1)
 
 			await db.googleReviewsCache.upsert({
 				where: { id: 'google' },
@@ -220,21 +240,20 @@ export async function GET(req) {
 			payload = fresh
 		}
 
-		// финальные данные из БД (гарантированно есть)
+		// финальные данные
 		const final = await db.googleReviewsCache.findUnique({
 			where: { id: 'google' },
 		})
-		if (!final) {
+		if (!final?.payload) {
 			return NextResponse.json(
 				{ ok: false, error: 'no-cache' },
 				{ status: 500 }
 			)
 		}
 
-		const norm = final.payload || {}
+		const norm = final.payload
 		let reviews = Array.isArray(norm.reviews) ? norm.reviews : []
 
-		// только с текстом + сортировка + закрепления
 		reviews = selectReviews(reviews, { minRating }).slice(0, limit)
 
 		return NextResponse.json({
@@ -251,6 +270,9 @@ export async function GET(req) {
 		})
 	} catch (e) {
 		console.error('GET /api/google-reviews failed:', e)
-		return NextResponse.json({ ok: false, error: 'internal' }, { status: 500 })
+		return NextResponse.json(
+			{ ok: false, error: e.message || 'internal' },
+			{ status: 500 }
+		)
 	}
 }

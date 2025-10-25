@@ -1,184 +1,205 @@
+// components/AvailabilityBar.jsx
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Marquee from 'react-fast-marquee'
 
+/* =========================
+   Конфиг по умолчанию
+   ========================= */
+const DEFAULT_BENEFITS = [
+	'Darmowy dojazd',
+	'Cena jak w warsztacie',
+	'Płatność kartą i BLIK',
+	'Gwarancja na usługę',
+	'7 dni w tygodniu',
+]
+
+const DEFAULT_SURCHARGES = {
+	weekdays: { pct: 30, window: '06:00–20:00', label: 'Dni rob.' },
+	weekends: { pct: 50, window: '10:00–20:00', label: 'Weekendy' },
+}
+
+/* =========================
+   Хелперы (чистые функции)
+   ========================= */
+function extractStart(rangeStr = '') {
+	const parts = rangeStr.split(/–|-/)
+	const start = parts[0]?.trim()
+	return start || rangeStr
+}
+
+function buildMainMessages(days, slots) {
+	const out = []
+
+	// dziś — ближайшее время
+	if (Array.isArray(days?.today?.ranges) && days.today.ranges.length) {
+		const firstStart = extractStart(days.today.ranges[0])
+		out.push({
+			type: 'info',
+			text: `🚗 Możemy przyjechać dziś o ${firstStart}`,
+		})
+		out.push({
+			type: 'info',
+			text: `📍 Dziś wolne: ${days.today.ranges.join(', ')}`,
+		})
+	}
+
+	// jutro — интервалы
+	if (Array.isArray(days?.tomorrow?.ranges) && days.tomorrow.ranges.length) {
+		out.push({
+			type: 'info',
+			text: `📅 Jutro wolne: ${days.tomorrow.ranges.join(
+				', '
+			)} — zarezerwuj online`,
+		})
+	}
+
+	// Fallback — первый слот из slots
+	if (
+		(!days?.today?.ranges || !days.today.ranges.length) &&
+		(!days?.tomorrow?.ranges || !days.tomorrow.ranges.length) &&
+		Array.isArray(slots) &&
+		slots.length
+	) {
+		const first = slots[0]
+		const time = first.match(/\d{1,2}:\d{2}/)?.[0] || ''
+		const label = time ? first.replace(time, '').trim() : first
+		const text = time
+			? `🕒 Najbliższy termin: ${label} ${time}`
+			: `🕒 Najbliższy termin: ${label}`
+		out.push({ type: 'info', text })
+	}
+
+	if (!out.length) {
+		out.push({
+			type: 'info',
+			text: 'Zostaw zgłoszenie — oddzwonimy w kilka minut.',
+		})
+	}
+
+	return out.slice(0, 3)
+}
+
+function buildSurchargeMessages(surcharges, enabled) {
+	if (!enabled || !surcharges) return []
+	const items = []
+
+	if (surcharges.weekdays?.pct && surcharges.weekdays?.window) {
+		const { pct, window, label = 'Dni rob.' } = surcharges.weekdays
+		items.push({
+			type: 'alert',
+			text: `⚠️ ${label}: cena +${pct}% poza ${window}`,
+		})
+	}
+	if (surcharges.weekends?.pct && surcharges.weekends?.window) {
+		const { pct, window, label = 'Weekendy' } = surcharges.weekends
+		items.push({
+			type: 'alert',
+			text: `⚠️ ${label}: cena +${pct}% poza ${window}`,
+		})
+	}
+
+	return items
+}
+
+/** Вставляет элементы массива `alerts` в массив `seq` с шагом `cadence`. */
+function interleave(seq, alerts, cadence = 2) {
+	if (!alerts?.length || cadence < 1) return seq
+	const out = []
+	let a = 0
+	let since = cadence
+	for (let i = 0; i < seq.length; i++) {
+		out.push(seq[i])
+		if (since >= cadence && a < alerts.length) {
+			out.push(alerts[a++])
+			since = 0
+		} else {
+			since++
+		}
+	}
+	return out
+}
+
+/* =========================
+   Компонент
+   ========================= */
 export default function AvailabilityBar({
 	headerSelector = 'header',
-	heroSelector = '#hero',
 	api = '/api/availability/next?limit=12',
 	speed = 30, // px/sec
-	benefits = [
-		'Dojazd do 60 min',
-		'Bez ukrytych kosztów',
-		'Płatność kartą i BLIK',
-		'Gwarancja na usługę',
-		'7 dni w tygodniu',
-		'Obsługujemy auta i busy',
-	],
+	benefits = DEFAULT_BENEFITS,
+	showSurcharges = true,
+	surcharges = DEFAULT_SURCHARGES,
+	cadence = 2, // как часто «вмешивать» сообщения о доплатах среди бенефитов
 }) {
 	const [days, setDays] = useState({ today: null, tomorrow: null, next: null })
 	const [slots, setSlots] = useState([])
 	const [headerH, setHeaderH] = useState(0)
-	const [loading, setLoading] = useState(true)
-	const [error, setError] = useState(false)
+	const [state, setState] = useState({ loading: true, error: false })
 
-	// 1) Забираем данные один раз (без дальнейших подмен контента)
+	// ---- load once
 	useEffect(() => {
-		let ignore = false
+		const ac = new AbortController()
 		;(async () => {
 			try {
-				setError(false)
-				setLoading(true)
-				const res = await fetch(api, { cache: 'no-store' })
+				setState({ loading: true, error: false })
+				const res = await fetch(api, { cache: 'no-store', signal: ac.signal })
 				if (!res.ok) throw new Error(`HTTP ${res.status}`)
 				const json = await res.json()
-				if (!ignore) {
-					setSlots(Array.isArray(json?.slots) ? json.slots : [])
-					setDays(json?.days || { today: null, tomorrow: null, next: null })
-				}
-			} catch {
-				if (!ignore) setError(true)
-			} finally {
-				if (!ignore) setLoading(false)
+				setSlots(Array.isArray(json?.slots) ? json.slots : [])
+				setDays(json?.days || { today: null, tomorrow: null, next: null })
+				setState({ loading: false, error: false })
+			} catch (e) {
+				if (ac.signal.aborted) return
+				setState({ loading: false, error: true })
 			}
 		})()
-		return () => {
-			ignore = true
-		}
+		return () => ac.abort()
 	}, [api])
 
-	// 2) sticky-отступ = высота хедера
+	// ---- sticky offset
+	const headerRef = useRef(null)
 	useEffect(() => {
-		const measure = () => {
-			const el = document.querySelector(headerSelector)
-			setHeaderH(el ? el.getBoundingClientRect().height : 0)
-		}
-		measure()
-		const ro = new ResizeObserver(measure)
 		const el = document.querySelector(headerSelector)
-		if (el) ro.observe(el)
+		headerRef.current = el
+		const measure = () => setHeaderH(el ? el.getBoundingClientRect().height : 0)
+		measure()
+		const ro = el ? new ResizeObserver(measure) : null
+		if (el && ro) ro.observe(el)
 		window.addEventListener('resize', measure)
 		return () => {
 			window.removeEventListener('resize', measure)
-			ro.disconnect()
+			ro?.disconnect()
 		}
 	}, [headerSelector])
 
-	const TimeChip = ({ t }) => (
-		<strong className='text-[#FD6D02] font-semibold chip-glow'>{t}</strong>
-	)
-
-	const extractStart = (rangeStr = '') => {
-		const parts = rangeStr.split(/–|-/)
-		const start = parts[0]?.trim()
-		return start || rangeStr
-	}
-
-	// 3) Формируем «главные» сообщения (не больше 3)
-	const mainMessages = useMemo(() => {
-		if (loading) return ['Sprawdzamy wolne terminy…']
-		if (error) return ['Brak połączenia — spróbuj ponownie.']
-
-		const out = []
-
-		// A) Сегодня: точное ближайшее время
-		if (days.today?.ranges?.length) {
-			const firstStart = extractStart(days.today.ranges[0])
-			out.push(
-				<>
-					🚗 Możemy przyjechać <strong>dziś</strong> o{' '}
-					<TimeChip t={firstStart} />
-				</>
-			)
-		}
-
-		// B) Сегодня: интервалы (если есть несколько «окон»)
-		if (days.today?.ranges?.length) {
-			out.push(
-				<>
-					📍 Dziś wolne: <TimeChip t={days.today.ranges.join(', ')} />
-				</>
-			)
-		}
-
-		// C) Завтра: интервалы
-		if (days.tomorrow?.ranges?.length) {
-			out.push(
-				<>
-					📅 Jutro wolne: <TimeChip t={days.tomorrow.ranges.join(', ')} /> —
-					zarezerwuj online
-				</>
-			)
-		}
-
-		// Fallback — ближайший слот из slots (например: „Śr 12.03 14:30”)
-		if (
-			!days.today?.ranges?.length &&
-			!days.tomorrow?.ranges?.length &&
-			slots.length
-		) {
-			const first = slots[0]
-			const time = first.match(/\d{1,2}:\d{2}/)?.[0] || ''
-			const label = time ? first.replace(time, '').trim() : first
-			out.push(
-				<>
-					🕒 Najbliższy termin:{' '}
-					<strong className='font-semibold'>{label}</strong>{' '}
-					<TimeChip t={time} />
-				</>
-			)
-		}
-
-		return out.length
-			? out.slice(0, 3)
-			: ['Zostaw zgłoszenie — oddzwonimy w kilka minut.']
-	}, [days, slots, loading, error])
-
-	// 4) Строим один ПЛЕЙЛИСТ без дальнейших изменений:
-	//    Главный → Бенефит → Главный → Бенефит → … (все бенефиты по очереди)
+	// ---- данные → сообщения
 	const playlist = useMemo(() => {
-		const mains = mainMessages.length
-			? mainMessages
-			: ['Zostaw zgłoszenie — oddzwonimy w kilka minut.']
-		const bens = benefits.filter(Boolean)
-		if (!bens.length) return mains // нет бенефитов — просто крутится список главных
+		const mains = state.loading
+			? [{ type: 'info', text: 'Sprawdzamy wolne terminy…' }]
+			: state.error
+			? [{ type: 'info', text: 'Brak połączenia — spróbuj ponownie.' }]
+			: buildMainMessages(days, slots)
 
+		const bens = (benefits || [])
+			.filter(Boolean)
+			.map(t => ({ type: 'benefit', text: `✅ ${t}` }))
+		if (!bens.length) return mains
+
+		// основной паттерн: MAIN → BENEFIT → MAIN → BENEFIT …
 		const seq = []
-		let i = 0 // индекс по mains
-		let j = 0 // индекс по bens
-
-		while (j < bens.length) {
-			// главный
-			seq.push(
-				<span key={`m-${i}-${j}`} className='inline-flex items-center gap-2'>
-					{mains[i % mains.length]}
-				</span>
-			)
-			// бенефит
-			seq.push(
-				<span
-					key={`b-${j}`}
-					className='inline-flex items-center text-white/85 font-normal'
-				>
-					✅ {bens[j]}
-				</span>
-			)
-			i++
-			j++
+		const len = Math.max(mains.length, bens.length)
+		for (let i = 0; i < len; i++) {
+			if (i < mains.length) seq.push(mains[i])
+			if (i < bens.length) seq.push(bens[i])
 		}
 
-		// добавим ещё один «главный» в конце (симметрии ради)
-		seq.push(
-			<span key={`m-end-${i}`} className='inline-flex items-center gap-2'>
-				{mains[i % mains.length]}
-			</span>
-		)
+		// аккуратно «вмешиваем» доплаты
+		const alerts = buildSurchargeMessages(surcharges, showSurcharges)
+		return interleave(seq, alerts, cadence)
+	}, [state, days, slots, benefits, surcharges, showSurcharges, cadence])
 
-		return seq
-	}, [mainMessages, benefits])
-
-	// 5) Рендер
 	if (!playlist.length) return null
 
 	return (
@@ -196,17 +217,22 @@ export default function AvailabilityBar({
 					gradientWidth={60}
 					className='py-2'
 				>
-					{playlist.map((node, i) => (
+					{playlist.map((item, i) => (
 						<span
-							key={i}
-							className='mx-8 text-[14px] md:text-[16px] leading-none'
+							key={`${item.type}-${i}`}
+							className={
+								item.type === 'alert'
+									? 'mx-8 text-[14px] md:text-[16px] leading-none text-white font-medium'
+									: 'mx-8 text-[14px] md:text-[16px] leading-none text-white/90'
+							}
 						>
-							{node}
+							{item.text}
 						</span>
 					))}
 				</Marquee>
 			</div>
 
+			{/* невзламываемый, лаконичный эффект для «часов» */}
 			<style jsx>{`
 				@keyframes chipGlow {
 					0%,

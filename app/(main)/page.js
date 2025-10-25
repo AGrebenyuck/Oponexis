@@ -7,11 +7,14 @@ import OffersGrid from '@/components/OfferGrid'
 import QuickReservation from '@/components/QuickReservation'
 import TestimonialsSection from '@/components/TestimonialsSection'
 import FloatingCallButton from '@/components/ui/floatingCallButton'
+import { getHeroReviews } from '@/lib/googleReviewsServer'
 
-export default function Home() {
+export default async function Home() {
+	const initialReviews = await getHeroReviews()
+
 	return (
 		<>
-			<Hero />
+			<Hero initialReviews={initialReviews} />
 			<AvailabilityBar />
 			<OffersGrid />
 			{/* <OffersSection /> */}

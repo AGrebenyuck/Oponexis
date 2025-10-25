@@ -31,8 +31,8 @@ const ContactsSection = memo(() => {
 							My w mediach społecznościowych
 						</h4>
 						<p>
-							Śledź nas na Facebooku i bądź na bieżąco z nowościami, promocjami
-							i praktycznymi poradami!
+							Śledź nas w mediach i bądź na bieżąco z nowościami, promocjami i
+							praktycznymi poradami!
 						</p>
 						<ul className='flex gap-3 md:relative md:mt-8 absolute top-0 right-0'>
 							<li>

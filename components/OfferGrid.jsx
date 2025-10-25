@@ -357,7 +357,7 @@ export default function OfferGrid({ title = 'NASZA OFERTA' }) {
 		<section
 			id='services'
 			aria-labelledby='nasza-oferta'
-			className='container-padding pt-8 pb-10 lg:pb-16 flex flex-col gap-6'
+			className='container-padding pt-8 flex flex-col gap-6'
 		>
 			<h2 id='nasza-oferta' className='title text-white'>
 				{title}

@@ -46,9 +46,9 @@ const Hero = memo(({ initialReviews = null }) => {
 			</picture>
 			<div className='absolute inset-0 pointer-events-none bg-gradient-to-b from-[#0c2437]/55 via-[#0c2437]/30 to-transparent' />
 
-			<div className='px-4 pt-16 pb-10 sm:px-10 md:px-16 lg:py-20 2xl:py-28'>
+			<div className='px-4 pt-16 pb-10 sm:px-10 md:px-14 2xl:px-16 lg:py-20 2xl:py-28'>
 				{/* 2 колонки на lg+ */}
-				<div className='mx-auto max-w-[1200px] lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]'>
+				<div className=' max-w-[1200px] lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_400px]'>
 					{/* LEFT */}
 					<div className='max-w-[980px]'>
 						<h1

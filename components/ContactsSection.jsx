@@ -67,10 +67,10 @@ const ContactsSection = memo(() => {
 						</h4>
 
 						<p className='font-semibold'>
-							Pon–Pt: <span className='font-normal'>06:00–20:00</span>
+							Pon–Pt: <span className='font-normal'>12:00–20:00</span>
 						</p>
 						<p className='font-semibold'>
-							Sob–Nd: <span className='font-normal'>10:00–20:00</span>
+							Sob–Nd: <span className='font-normal'>12:00–20:00</span>
 						</p>
 
 						<p className='title-2 font-semibold my-2'>
@@ -79,11 +79,11 @@ const ContactsSection = memo(() => {
 						<ul className=''>
 							<li>
 								<span className=' font-semibold'>+30%</span> w dni robocze poza
-								godzinami 06:00–20:00
+								godzinami 12:00–20:00
 							</li>
 							<li>
 								<span className='font-semibold'>+50%</span> w weekendy poza
-								godzinami 10:00–20:00
+								godzinami 12:00–20:00
 							</li>
 						</ul>
 					</div>

@@ -16,8 +16,8 @@ const DEFAULT_BENEFITS = [
 ]
 
 const DEFAULT_SURCHARGES = {
-	weekdays: { pct: 30, window: '06:00–20:00', label: 'Dni rob.' },
-	weekends: { pct: 50, window: '10:00–20:00', label: 'Weekendy' },
+	weekdays: { pct: 30, window: '12:00–20:00', label: 'Dni rob.' },
+	weekends: { pct: 50, window: '12:00–20:00', label: 'Weekendy' },
 }
 
 /* =========================

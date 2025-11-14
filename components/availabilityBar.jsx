@@ -29,6 +29,26 @@ function extractStart(rangeStr = '') {
 	return start || rangeStr
 }
 
+// === Вспомогательная функция: красит время в оранжевый ===
+function highlightTime(str) {
+	// если выходной — ничего не красим
+	const lowered = str.toLowerCase()
+	if (
+		lowered.includes('sob') ||
+		lowered.includes('niedz') ||
+		lowered.includes('dni rob') ||
+		lowered.includes('weekend')
+	) {
+		return str
+	}
+
+	// ищем время формата 09:00, 9:30, 14:05
+	return str.replace(
+		/(\b\d{1,2}:\d{2}\b)/g,
+		'<span class="text-secondary-orange font-semibold">$1</span>'
+	)
+}
+
 function buildMainMessages(days, slots) {
 	const out = []
 
@@ -225,9 +245,8 @@ export default function AvailabilityBar({
 									? 'mx-8 text-[14px] md:text-[16px] leading-none text-white font-medium'
 									: 'mx-8 text-[14px] md:text-[16px] leading-none text-white/90'
 							}
-						>
-							{item.text}
-						</span>
+							dangerouslySetInnerHTML={{ __html: highlightTime(item.text) }}
+						/>
 					))}
 				</Marquee>
 			</div>

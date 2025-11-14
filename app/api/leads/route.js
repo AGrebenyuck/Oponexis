@@ -1,6 +1,7 @@
 // app/api/leads/route.js
-import { sendEmail, sendTelegram } from '@/lib/notify'
+import { sendEmail } from '@/lib/notify'
 import { db } from '@/lib/prisma'
+import { sendLeadToTelegram } from '@/lib/telegramBot'
 import { cookies, headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -79,18 +80,14 @@ export async function POST(req) {
       `,
 		})
 
-		await sendTelegram(
-			`🆕 Zgłoszenie:
-Imię: ${lead.name}
-Tel: ${lead.phone}
-${
-	lead.selectedNames?.length
-		? `Wybrane usługi: ${lead.selectedNames.join(', ')}\n`
-		: ''
-}${lead.partnerCode ? `Partner: ${lead.partnerCode}\n` : ''}`
-		)
-
-		// возвращаем JSON для фронта + GTM
+		await sendLeadToTelegram({
+			id: lead.id,
+			name: lead.name,
+			phone: lead.phone,
+			services: lead.selectedNames?.length
+				? lead.selectedNames
+				: [lead.serviceName],
+		})
 		return NextResponse.json({ ok: true, lead })
 	} catch (e) {
 		console.error('POST /api/leads failed:', e)

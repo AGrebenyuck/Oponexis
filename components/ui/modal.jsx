@@ -24,7 +24,7 @@ const Modal = ({ visible, onClose, children, footer }) => {
 						animate={{ opacity: 1, scale: 1 }}
 						exit={{ opacity: 0, scale: 0.95 }}
 						transition={{ duration: 0.2 }}
-						className='bg-white rounded-lg shadow-lg w-full max-w-[800px] p-4'
+						className='bg-white rounded-lg shadow-lg w-full max-w-[800px] p-4 overflow-hidden'
 					>
 						{/* Заголовок */}
 						<div className='flex justify-end items-center'>

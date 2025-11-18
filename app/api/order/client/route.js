@@ -1,5 +1,9 @@
+// app/api/order/client/route.js
 import { db } from '@/lib/prisma'
-import { sendWorkOrderToTelegram } from '@/lib/telegramBot'
+import {
+	sendWorkOrderToTelegram,
+	updateScheduleMessage,
+} from '@/lib/telegramBot'
 import { NextResponse } from 'next/server'
 
 export async function POST(req) {
@@ -29,11 +33,20 @@ export async function POST(req) {
 			)
 		}
 
-		// 👉 Вариант A:
-		// - если пользователь выбрал на карте — lat/lng уже пришли с клиента
-		// - если вводил вручную — lat/lng могут быть null, и мы НЕ геокодим здесь
+		// координаты, как было
 		const finalLat = typeof lat === 'number' ? lat : null
 		const finalLng = typeof lng === 'number' ? lng : null
+
+		// 🔥 нормализуем дату визита (если пришла) — храним как Date с 00:00
+		let visitDateValue = null
+		if (visitDate) {
+			// visitDate ожидаем в формате "YYYY-MM-DD"
+			const [y, m, d] = String(visitDate).split('-').map(Number)
+			if (y && m && d) {
+				// создаём дату в локальном времени (можно и UTC, если хочешь строго)
+				visitDateValue = new Date(y, m - 1, d)
+			}
+		}
 
 		const workOrder = await db.workOrder.create({
 			data: {
@@ -48,14 +61,19 @@ export async function POST(req) {
 				lat: finalLat,
 				lng: finalLng,
 				notes: notes || null,
+				visitDate: visitDateValue,
+				visitTime: visitTime || null,
 			},
 		})
 
-		// ➕ пробрасываем visitDate/visitTime отдельно — в БД не пишем
+		// отправляем обычную карточку (как было)
 		await sendWorkOrderToTelegram(workOrder, {
 			visitDate: visitDate || null,
 			visitTime: visitTime || null,
 		})
+
+		// 🔥 обновляем закреплённое сообщение-расписание
+		await updateScheduleMessage()
 
 		return NextResponse.json({ ok: true })
 	} catch (e) {

@@ -95,7 +95,11 @@ model WorkOrder {
   lat     Float?
   lng     Float?
 
-  notes String?
+  notes     String?
+  visitDate DateTime?
+  visitTime String?
+
+  telegramMessageId Int?
 }
 
 model GoogleReviewsCache {

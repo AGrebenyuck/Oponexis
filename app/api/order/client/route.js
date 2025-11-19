@@ -6,6 +6,14 @@ import {
 } from '@/lib/telegramBot'
 import { NextResponse } from 'next/server'
 
+// YYYY-MM-DD -> Date (UTC 00:00)
+function parseVisitDate(str) {
+	if (!str) return null
+	const [y, m, d] = String(str).split('-').map(Number)
+	if (!y || !m || !d) return null
+	return new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+}
+
 export async function POST(req) {
 	try {
 		const body = await req.json()
@@ -22,8 +30,8 @@ export async function POST(req) {
 			lat,
 			lng,
 			notes,
-			visitDate,
-			visitTime,
+			visitDate, // "YYYY-MM-DD" из SMS-редиректа
+			visitTime, // "HH:MM"
 		} = body || {}
 
 		if (!name?.trim() || !phone?.trim()) {
@@ -33,20 +41,14 @@ export async function POST(req) {
 			)
 		}
 
-		// координаты, как было
 		const finalLat = typeof lat === 'number' ? lat : null
 		const finalLng = typeof lng === 'number' ? lng : null
 
-		// 🔥 нормализуем дату визита (если пришла) — храним как Date с 00:00
-		let visitDateValue = null
-		if (visitDate) {
-			// visitDate ожидаем в формате "YYYY-MM-DD"
-			const [y, m, d] = String(visitDate).split('-').map(Number)
-			if (y && m && d) {
-				// создаём дату в локальном времени (можно и UTC, если хочешь строго)
-				visitDateValue = new Date(y, m - 1, d)
-			}
-		}
+		// 🔥 фикс: конвертим строку в UTC дату
+		const visitDateObj =
+			typeof visitDate === 'string' && visitDate
+				? parseVisitDate(visitDate)
+				: null
 
 		const workOrder = await db.workOrder.create({
 			data: {
@@ -61,18 +63,18 @@ export async function POST(req) {
 				lat: finalLat,
 				lng: finalLng,
 				notes: notes || null,
-				visitDate: visitDateValue,
+				visitDate: visitDateObj,
 				visitTime: visitTime || null,
 			},
 		})
 
-		// отправляем обычную карточку (как было)
+		// отправляем карточку в рабочий чат
 		await sendWorkOrderToTelegram(workOrder, {
-			visitDate: visitDate || null,
+			visitDate: visitDate || null, // для текста в карточке оставляем строку
 			visitTime: visitTime || null,
 		})
 
-		// 🔥 обновляем закреплённое сообщение-расписание
+		// обновляем закреплённый график
 		await updateScheduleMessage()
 
 		return NextResponse.json({ ok: true })

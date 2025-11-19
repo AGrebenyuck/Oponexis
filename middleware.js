@@ -14,6 +14,7 @@ const isPublic = createRouteMatcher([
 	'/fonts/(.*)',
 	'/partners', // если есть индекс
 	'/partners/(.*)', // /partners/[code] и пр.
+	'/admin/(.*)', // /partners/[code] и пр.
 	'/order',
 	'/sms-redirect',
 ])

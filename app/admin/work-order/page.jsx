@@ -1,9 +1,8 @@
-'use client'
-
+// app/admin/work-order/page.jsx
 import { Suspense } from 'react'
 import WorkOrderEditInner from './work-order-inner'
 
-export default function WorkOrderEditPage() {
+export default function Page() {
 	return (
 		<Suspense
 			fallback={

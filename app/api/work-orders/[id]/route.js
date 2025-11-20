@@ -4,14 +4,18 @@ import {
 	updateScheduleMessage,
 	updateWorkOrderMessage,
 } from '@/lib/telegramBot'
+import { DateTime } from 'luxon'
 import { NextResponse } from 'next/server'
 
-// YYYY-MM-DD → Date (UTC 00:00)
+const ZONE = 'Europe/Warsaw'
+
+// YYYY-MM-DD → Date (UTC) через локальную полночь в Польше
 function parseVisitDate(str) {
 	if (!str) return null
-	const [y, m, d] = String(str).split('-').map(Number)
-	if (!y || !m || !d) return null
-	return new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+	const dt = DateTime.fromISO(String(str), { zone: ZONE }).startOf('day')
+	if (!dt.isValid) return null
+	// Prisma ожидает JS Date → храним в UTC, но дата считается по Польше
+	return dt.toJSDate()
 }
 
 // Универсальный поиск по id: пробуем как Int и как String
@@ -107,7 +111,7 @@ export async function PUT(req, ctx) {
 		}
 
 		const updated = await db.workOrder.update({
-			where: { id: existing.id }, // тут уже правильный тип из БД
+			where: { id: existing.id }, // тип id берём из БД
 			data: {
 				name: incoming.name ?? existing.name,
 				phone: incoming.phone ?? existing.phone,
@@ -126,8 +130,9 @@ export async function PUT(req, ctx) {
 						: existing.visitDate,
 			},
 		})
-		await updateWorkOrderMessage(updated)
 
+		// Обновляем сообщение-карточку и закреплённый график
+		await updateWorkOrderMessage(updated)
 		await updateScheduleMessage()
 
 		return NextResponse.json({ ok: true, order: updated })

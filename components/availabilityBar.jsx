@@ -18,6 +18,7 @@ const DEFAULT_BENEFITS = [
 const DEFAULT_SURCHARGES = {
 	weekdays: { pct: 30, window: '12:00–20:00', label: 'Dni rob.' },
 	weekends: { pct: 50, window: '12:00–20:00', label: 'Weekendy' },
+	sundays: { pct: 50, label: 'Niedziela' },
 }
 
 /* =========================
@@ -117,6 +118,13 @@ function buildSurchargeMessages(surcharges, enabled) {
 		items.push({
 			type: 'alert',
 			text: `⚠️ ${label}: cena +${pct}% poza ${window}`,
+		})
+	}
+	if (surcharges.sundays?.pct) {
+		const { pct, label = 'Niedziela' } = surcharges.sundays
+		items.push({
+			type: 'alert',
+			text: `⚠️ ${label}: cena +${pct}% niezależnie od godziny`,
 		})
 	}
 

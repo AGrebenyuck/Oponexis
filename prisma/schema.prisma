@@ -102,6 +102,31 @@ model WorkOrder {
   telegramMessageId Int?
 }
 
+model SmsFormLog {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  phone   String
+  name    String?
+  service String?
+  source  String? // 'lead', 'manual', 'sms-redirect' и т.п.
+  leadId  String?
+
+  // 'pending' – отправили СМС, ждём форму
+  // 'done'    – форма пришла, заказ создан
+  // 'deleted' – скрыто вручную (не показываем в трекере)
+  status String @default("pending")
+
+  sentAt DateTime @default(now())
+
+  // 👉 новое:
+  visitDate DateTime? // дата визита из sms-redirect (YYYY-MM-DD)
+  visitTime String? // час визита "HH:MM"
+
+  completedAt DateTime?
+}
+
 model GoogleReviewsCache {
   id        String   @id @default("google") // один глобальный ряд
   payload   Json

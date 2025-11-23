@@ -73,17 +73,19 @@ const ContactsSection = memo(() => {
 							Sob–Nd: <span className='font-normal'>12:00–20:00</span>
 						</p>
 
-						<p className='title-2 font-semibold my-2'>
-							Opłata poza godzinami pracy:
-						</p>
-						<ul className=''>
+						<p className='title-2 font-semibold my-2'>Dodatkowe opłaty:</p>
+						<ul>
 							<li>
-								<span className=' font-semibold'>+30%</span> w dni robocze poza
+								<span className='font-semibold'>+30%</span> w dni robocze poza
 								godzinami 12:00–20:00
 							</li>
 							<li>
-								<span className='font-semibold'>+50%</span> w weekendy poza
+								<span className='font-semibold'>+50%</span> w soboty poza
 								godzinami 12:00–20:00
+							</li>
+							<li>
+								<span className='font-semibold'>+50%</span> w niedziele
+								(niezależnie od godziny)
 							</li>
 						</ul>
 					</div>

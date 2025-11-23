@@ -1,6 +1,9 @@
 // app/api/order/client/route.js
 import { db } from '@/lib/prisma'
 import {
+	// 👇 добавляем два хелпера из telegramBot.js (они были в шаге 3.4)
+	markSmsFormCompletedByLead,
+	markSmsFormCompletedByPhone,
 	sendWorkOrderToTelegram,
 	updateScheduleMessage,
 } from '@/lib/telegramBot'
@@ -44,7 +47,7 @@ export async function POST(req) {
 		const finalLat = typeof lat === 'number' ? lat : null
 		const finalLng = typeof lng === 'number' ? lng : null
 
-		// 🔥 фикс: конвертим строку в UTC дату
+		// 🔥 конвертим строку даты в UTC Date
 		const visitDateObj =
 			typeof visitDate === 'string' && visitDate
 				? parseVisitDate(visitDate)
@@ -68,16 +71,33 @@ export async function POST(req) {
 			},
 		})
 
+		// 👇 ШАГ 6: отмечаем "форма пришла" в SmsFormLog
+		try {
+			if (workOrder.leadId) {
+				// если есть leadId — матчим по нему (точнее)
+				await markSmsFormCompletedByLead(workOrder.leadId)
+			} else if (workOrder.phone) {
+				// если лида нет (звонок/ручной кейс) — матчим по телефону
+				await markSmsFormCompletedByPhone(workOrder.phone, {
+					visitDate,
+					visitTime,
+				})
+			}
+		} catch (e) {
+			// не ломаем создание заказа, только логируем
+			console.error('[POST /api/order/client] markSmsFormCompleted failed:', e)
+		}
+
 		// отправляем карточку в рабочий чат
 		await sendWorkOrderToTelegram(workOrder, {
-			visitDate: visitDate || null, // для текста в карточке оставляем строку
+			visitDate: visitDate || null, // для текста в карточке — как строку
 			visitTime: visitTime || null,
 		})
 
-		// обновляем закреплённый график
+		// обновляем закреплённый график визитów
 		await updateScheduleMessage()
 
-		return NextResponse.json({ ok: true })
+		return NextResponse.json({ ok: true, order: workOrder })
 	} catch (e) {
 		console.error('POST /api/order/client failed:', e)
 		return NextResponse.json(

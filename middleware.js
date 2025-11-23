@@ -17,6 +17,7 @@ const isPublic = createRouteMatcher([
 	'/admin/(.*)', // /partners/[code] и пр.
 	'/order',
 	'/sms-redirect',
+	'/sms/(.*)',
 ])
 
 export default clerkMiddleware(async (auth, req) => {

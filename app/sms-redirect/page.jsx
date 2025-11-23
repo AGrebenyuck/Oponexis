@@ -78,23 +78,17 @@ export default function SmsRedirectPage(props) {
 		let href = ''
 
 		if (isIOS) {
-			// iOS хорошо переваривает sms: + &body=
-			// пример: sms:+48111111111&body=...
 			href = `sms:${cleanedPhone}&body=${encodedBody}`
 		} else if (isAndroid) {
-			// Android-специфичная схема smsto:
-			// ВАЖНО: без // — только smsto:+48...?
-			// пример: smsto:+48111111111?body=...
 			href = `smsto:${cleanedPhone}?body=${encodedBody}`
 		} else {
-			// fallback для других платформ — пробуем sms:
 			href = `sms:${cleanedPhone}?body=${encodedBody}`
 		}
 
 		window.location.href = href
 	}
 
-	function handleSendSms() {
+	async function handleSendSms() {
 		setError('')
 
 		if (!visitDate || !visitTime) {
@@ -113,6 +107,27 @@ export default function SmsRedirectPage(props) {
 			`(adres, kolor auta, nr rejestracyjny).\n\n` +
 			`Formularz: ${orderUrl}`
 
+		// 🔹 ЛОГИРУЕМ факт отправки СМС с датой визита
+		try {
+			await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/sms/track-sent`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					phone,
+					name,
+					service,
+					leadId: lead || null,
+					source: lead ? 'lead' : 'manual',
+					visitDate, // ← "YYYY-MM-DD"
+					visitTime, // ← "HH:MM"
+				}),
+			})
+		} catch (e) {
+			console.error('sms/track-sent failed', e)
+			// не ломаем UX, просто логируем
+		}
+
+		// 🔹 Открываем нативное приложение SMS
 		openSmsLink(phone, smsText)
 	}
 
@@ -126,7 +141,6 @@ export default function SmsRedirectPage(props) {
 				</p>
 
 				<div className='space-y-4 mb-4'>
-					{/* Data wizyty */}
 					<div className='space-y-1'>
 						<label className='text-xs text-slate-300 block'>Data wizyty</label>
 						<input
@@ -137,7 +151,6 @@ export default function SmsRedirectPage(props) {
 						/>
 					</div>
 
-					{/* Godzina wizyty */}
 					<div className='space-y-1'>
 						<label className='text-xs text-slate-300 block'>
 							Godzina wizyty
@@ -146,11 +159,7 @@ export default function SmsRedirectPage(props) {
 							type='time'
 							value={visitTime}
 							onChange={e => setVisitTime(e.target.value)}
-							className={`
-								w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm
-								text-slate-100
-								focus:outline-none focus:ring-1 focus:ring-orange-400
-							`}
+							className='w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-orange-400'
 						/>
 					</div>
 

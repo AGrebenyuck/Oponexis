@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { getDetailsContent } from './serviceDetails' // 🔹 подключаем хелпер
 import MultiServicePicker from './ui/MultiServicePicker'
 import OrderAddressInput from './ui/OrderAddressInput'
-import Popover from './ui/Popover'
+
+import { getDetailsContent } from './serviceDetails' // 🔹 подключаем хелпер
+import Popover from './ui/popover'
 
 export default function OrderForm({
 	initialData,

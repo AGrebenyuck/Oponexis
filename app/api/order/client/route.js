@@ -1,11 +1,11 @@
 // app/api/order/client/route.js
 import { db } from '@/lib/prisma'
 import {
-	// 👇 добавляем два хелпера из telegramBot.js (они были в шаге 3.4)
 	markSmsFormCompletedByLead,
 	markSmsFormCompletedByPhone,
 	sendWorkOrderToTelegram,
 	updateScheduleMessage,
+	updateWorkOrderMessage,
 } from '@/lib/telegramBot'
 import { NextResponse } from 'next/server'
 
@@ -15,6 +15,96 @@ function parseVisitDate(str) {
 	const [y, m, d] = String(str).split('-').map(Number)
 	if (!y || !m || !d) return null
 	return new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
+}
+
+// лёгкая нормализация телефона
+function normalizePhone(raw) {
+	if (!raw) return null
+	const trimmed = String(raw).trim()
+	const hasPlus = trimmed.startsWith('+')
+	const digits = trimmed.replace(/[^\d]/g, '')
+	if (!digits) return null
+
+	if (hasPlus) return '+' + digits
+	if (digits.length === 9) return '+48' + digits
+	return '+' + digits
+}
+
+// усиленный поиск существующей заявки, чтобы не плодить дубликаты
+async function findExistingWorkOrder({
+	leadId,
+	phone,
+	visitDateObj,
+	visitTime,
+}) {
+	let existing = null
+
+	// 1) leadId + дата + время
+	if (leadId && visitDateObj) {
+		existing = await db.workOrder.findFirst({
+			where: {
+				leadId,
+				visitDate: visitDateObj,
+				visitTime: visitTime || null,
+			},
+		})
+		if (existing) return existing
+	}
+
+	// 2) leadId + дата (без времени)
+	if (!existing && leadId && visitDateObj) {
+		existing = await db.workOrder.findFirst({
+			where: { leadId, visitDate: visitDateObj },
+			orderBy: { id: 'desc' },
+		})
+		if (existing) return existing
+	}
+
+	// 3) телефон + дата + время
+	if (!existing && phone && visitDateObj) {
+		existing = await db.workOrder.findFirst({
+			where: {
+				leadId: null,
+				phone,
+				visitDate: visitDateObj,
+				visitTime: visitTime || null,
+			},
+		})
+		if (existing) return existing
+	}
+
+	// 4) телефон + дата (без времени)
+	if (!existing && phone && visitDateObj) {
+		existing = await db.workOrder.findFirst({
+			where: {
+				leadId: null,
+				phone,
+				visitDate: visitDateObj,
+			},
+			orderBy: { id: 'desc' },
+		})
+		if (existing) return existing
+	}
+
+	// 5) fallback: любой последний по leadId
+	if (!existing && leadId) {
+		existing = await db.workOrder.findFirst({
+			where: { leadId },
+			orderBy: { id: 'desc' },
+		})
+		if (existing) return existing
+	}
+
+	// 6) fallback: любой последний по телефону
+	if (!existing && phone) {
+		existing = await db.workOrder.findFirst({
+			where: { phone },
+			orderBy: { id: 'desc' },
+		})
+		if (existing) return existing
+	}
+
+	return null
 }
 
 export async function POST(req) {
@@ -33,8 +123,13 @@ export async function POST(req) {
 			lat,
 			lng,
 			notes,
-			visitDate, // "YYYY-MM-DD" из SMS-редиректа
+			visitDate, // "YYYY-MM-DD"
 			visitTime, // "HH:MM"
+
+			// faktura
+			wantsInvoice,
+			invoiceNip,
+			invoiceEmail,
 		} = body || {}
 
 		if (!name?.trim() || !phone?.trim()) {
@@ -44,58 +139,94 @@ export async function POST(req) {
 			)
 		}
 
+		const normalizedPhone = normalizePhone(phone) || phone.trim()
 		const finalLat = typeof lat === 'number' ? lat : null
 		const finalLng = typeof lng === 'number' ? lng : null
 
-		// 🔥 конвертим строку даты в UTC Date
 		const visitDateObj =
 			typeof visitDate === 'string' && visitDate
 				? parseVisitDate(visitDate)
 				: null
 
-		const workOrder = await db.workOrder.create({
-			data: {
-				leadId: leadId ? leadId : null,
-				name: name.trim(),
-				phone: phone.trim(),
-				service: service || null,
-				regNumber: regNumber || null,
-				color: color || null,
-				carModel: carModel || null,
-				address: address || null,
-				lat: finalLat,
-				lng: finalLng,
-				notes: notes || null,
-				visitDate: visitDateObj,
-				visitTime: visitTime || null,
-			},
+		// ищем дубликат/существующую заявку
+		const existingOrder = await findExistingWorkOrder({
+			leadId: leadId || null,
+			phone: normalizedPhone,
+			visitDateObj,
+			visitTime: visitTime || null,
 		})
 
-		// 👇 ШАГ 6: отмечаем "форма пришла" в SmsFormLog
+		const data = {
+			leadId: leadId || null,
+			name: name.trim(),
+			phone: normalizedPhone,
+			service: service || null,
+			regNumber: regNumber || null,
+			color: color || null,
+			carModel: carModel || null,
+			address: address || null,
+			lat: finalLat,
+			lng: finalLng,
+			notes: notes || null,
+			visitDate: visitDateObj,
+			visitTime: visitTime || null,
+
+			// faktura
+			wantsInvoice: !!wantsInvoice,
+			invoiceNip: wantsInvoice ? invoiceNip || null : null,
+			invoiceEmail: wantsInvoice ? invoiceEmail || null : null,
+		}
+
+		let workOrder
+
+		if (existingOrder) {
+			// 🔄 обновляем существующую запись
+			workOrder = await db.workOrder.update({
+				where: { id: existingOrder.id },
+				data,
+			})
+		} else {
+			// 🆕 создаём новую
+			workOrder = await db.workOrder.create({ data })
+		}
+
+		// отмечаем SmsFormLog
 		try {
 			if (workOrder.leadId) {
-				// если есть leadId — матчим по нему (точнее)
 				await markSmsFormCompletedByLead(workOrder.leadId)
 			} else if (workOrder.phone) {
-				// если лида нет (звонок/ручной кейс) — матчим по телефону
 				await markSmsFormCompletedByPhone(workOrder.phone, {
 					visitDate,
 					visitTime,
 				})
 			}
 		} catch (e) {
-			// не ломаем создание заказа, только логируем
 			console.error('[POST /api/order/client] markSmsFormCompleted failed:', e)
 		}
 
-		// отправляем карточку в рабочий чат
-		await sendWorkOrderToTelegram(workOrder, {
-			visitDate: visitDate || null, // для текста в карточке — как строку
-			visitTime: visitTime || null,
-		})
+		// 🔔 Telegram: либо обновляем существующую карточку, либо создаём новую
+		try {
+			if (existingOrder && existingOrder.telegramMessageId) {
+				await updateWorkOrderMessage(workOrder)
+			} else {
+				await sendWorkOrderToTelegram(workOrder, {
+					visitDate: visitDate || null,
+					visitTime: visitTime || null,
+				})
+			}
+		} catch (e) {
+			console.error(
+				'[POST /api/order/client] Telegram card send/update failed:',
+				e
+			)
+		}
 
-		// обновляем закреплённый график визитów
-		await updateScheduleMessage()
+		// 📅 обновляем закреплённый график
+		try {
+			await updateScheduleMessage()
+		} catch (e) {
+			console.error('[POST /api/order/client] updateScheduleMessage failed:', e)
+		}
 
 		return NextResponse.json({ ok: true, order: workOrder })
 	} catch (e) {

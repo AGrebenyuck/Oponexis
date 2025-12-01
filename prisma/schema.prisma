@@ -100,6 +100,10 @@ model WorkOrder {
   visitTime String?
 
   telegramMessageId Int?
+
+  wantsInvoice Boolean @default(false)
+  invoiceNip   String? @db.VarChar(32)
+  invoiceEmail String? @db.VarChar(191)
 }
 
 model SmsFormLog {

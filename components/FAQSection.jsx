@@ -12,7 +12,7 @@ const FAQSection = memo(() => {
 		{
 			title: 'Jak długo trwa wymiana opon lub kół?',
 			content:
-				'Standardowa wymiana opon lub kół trwa około 30–45 minut, w zależności od warunków i rodzaju pojazdu.',
+				'Standardowa wymiana opon lub kół trwa około 60-90 minut, w zależności od warunków i rodzaju pojazdu.',
 		},
 		{
 			title: 'Czy oferujecie usługi poza Opolem?',

@@ -1,9 +1,11 @@
 'use client'
 
 import OrderForm from '@/components/OrderForm'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
 export default function OrderPageClient({ params, services }) {
+	const router = useRouter()
 	const { lead, name, phone, service, visitDate, visitTime } = params || {}
 
 	const initialData = {
@@ -14,8 +16,41 @@ export default function OrderPageClient({ params, services }) {
 	}
 
 	const [success, setSuccess] = useState(false)
+	const [alreadySubmitted, setAlreadySubmitted] = useState(false)
 
-	// текст для показа клиенту
+	// ключ, по которому фиксируем "эта форма уже отправлена"
+	const submissionKey = useMemo(() => {
+		const base =
+			lead ||
+			[
+				phone || 'no-phone',
+				visitDate || 'no-date',
+				visitTime || 'no-time',
+			].join('_')
+
+		return `order_submitted_${base}`
+	}, [lead, phone, visitDate, visitTime])
+
+	// при первом заходе по ссылке — проверяем, нет ли уже отправки
+	useEffect(() => {
+		if (typeof window === 'undefined') return
+		const flag = window.localStorage.getItem(submissionKey)
+		if (flag === '1') setAlreadySubmitted(true)
+	}, [submissionKey])
+
+	// после успешной отправки ставим флаг + редиректим на главную
+	useEffect(() => {
+		if (!success) return
+		if (typeof window !== 'undefined') {
+			window.localStorage.setItem(submissionKey, '1')
+		}
+		const t = setTimeout(() => {
+			router.push('/')
+		}, 6000)
+		return () => clearTimeout(t)
+	}, [success, router, submissionKey])
+
+	// текст термина для отображения
 	let terminLabel = ''
 	if (visitDate) {
 		const [y, m, d] = String(visitDate).split('-')
@@ -29,7 +64,41 @@ export default function OrderPageClient({ params, services }) {
 				{success ? (
 					<p className='text-emerald-400 text-sm'>
 						Dziękujemy! Twoje dane zostały zapisane. Do zobaczenia wkrótce 🚗
+						<br />
+						<span className='text-slate-400 text-xs'>
+							Za chwilę przeniesiemy Cię na stronę główną…
+						</span>
 					</p>
+				) : alreadySubmitted ? (
+					<div className='space-y-3 text-sm'>
+						<p className='text-emerald-300'>
+							Mamy już zapisane dane do tej wizyty. Nie musisz wysyłać
+							formularza ponownie ✅
+						</p>
+						{terminLabel && (
+							<p className='text-orange-300'>
+								Termin wizyty: <strong>{terminLabel}</strong>
+							</p>
+						)}
+						<p className='text-slate-400'>
+							Jeśli coś się zmieniło (np. adres, kolor auta) możesz
+							zaktualizować dane.
+						</p>
+						<div className='flex gap-3'>
+							<button
+								className='flex-1 rounded-lg bg-orange-500 hover:bg-orange-600 py-2 text-xs font-medium'
+								onClick={() => setAlreadySubmitted(false)}
+							>
+								✏️ Edytuj dane
+							</button>
+							<button
+								className='flex-1 rounded-lg bg-slate-800 hover:bg-slate-700 py-2 text-xs font-medium text-slate-100 border border-slate-600'
+								onClick={() => router.push('/')}
+							>
+								🏠 Strona główna
+							</button>
+						</div>
+					</div>
 				) : (
 					<>
 						<h1 className='text-xl font-semibold mb-1'>

@@ -1,166 +1,277 @@
-// app/api/availability/next/route.js
-import {
-	generateAvailableSlots,
-	getAvailability,
-	getAvailableDaysForCalendar,
-} from '@/actions/availability'
+import { db } from '@/lib/prisma'
 import { DateTime } from 'luxon'
 import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
+const ZONE = 'Europe/Warsaw'
 
-const TIMEZONE = 'Europe/Warsaw'
-// мягкий буфер на выезд, минут
-const LEAD_MIN = Number(process.env.AVAILABILITY_LEAD_MIN || 60)
-// длительность «типовой» услуги, минут
-const DEFAULT_DURATION_MIN = Number(process.env.AVAILABILITY_DEF_DURATION || 60)
+// рабочий день
+const WORK_DAY_START_MIN = 12 * 60 // 12:00
+const WORK_DAY_END_MIN = 20 * 60 // 20:00
+const SLOT_STEP_MIN = 15 // шаг для "slots" (минуты)
+const DEFAULT_DURATION_MIN = 60 // дефолтная длительность, если не нашли
 
-function parseHM(hm) {
-	const [h, m] = hm.split(':').map(Number)
-	return { h, m }
-}
-function toMinutes(hm) {
-	const { h, m } = parseHM(hm)
+// 🔹 буфер на дорогу до клиента / от клиента
+const TRAVEL_BUFFER_MIN = 30
+
+/* ========= time helpers ========= */
+
+function timeToMinutes(str) {
+	if (!str) return null
+	const [h, m] = String(str).split(':').map(Number)
+	if (Number.isNaN(h) || Number.isNaN(m)) return null
 	return h * 60 + m
 }
-function fromMinutes(min) {
-	const hh = Math.floor(min / 60)
-	const mm = min % 60
-	return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+
+function minutesToTime(min) {
+	const h = Math.floor(min / 60)
+	const m = min % 60
+	return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+/** duration для WorkOrder по названию услуги (order.service) */
+function getDurationForOrder(order, durationByName) {
+	if (!order?.service) return DEFAULT_DURATION_MIN
+
+	const parts = order.service
+		.split('+')
+		.map(p => p.trim().toLowerCase())
+		.filter(Boolean)
+
+	if (!parts.length) return DEFAULT_DURATION_MIN
+
+	const durations = parts
+		.map(name => durationByName.get(name))
+		.filter(d => typeof d === 'number' && d > 0)
+
+	if (!durations.length) return DEFAULT_DURATION_MIN
+
+	return Math.max(...durations)
+}
+
+/** Занятые интервалы в пределах рабочего дня [WORK_DAY_START_MIN, WORK_DAY_END_MIN] */
+function buildBusyIntervalsForDay(ordersForDay, durationByName) {
+	const intervals = []
+
+	for (const o of ordersForDay) {
+		if (!o.visitTime) continue
+		const startMin = timeToMinutes(o.visitTime)
+		if (startMin == null) continue
+
+		const dur = getDurationForOrder(o, durationByName)
+		let endMin = startMin + dur
+
+		// обрезаем по рабочему дню
+		if (endMin <= WORK_DAY_START_MIN || startMin >= WORK_DAY_END_MIN) {
+			continue
+		}
+		const s = Math.max(startMin, WORK_DAY_START_MIN)
+		const e = Math.min(endMin, WORK_DAY_END_MIN)
+		if (e > s) intervals.push([s, e])
+	}
+
+	if (!intervals.length) return []
+
+	intervals.sort((a, b) => a[0] - b[0])
+
+	const merged = []
+	let [curStart, curEnd] = intervals[0]
+
+	for (let i = 1; i < intervals.length; i++) {
+		const [s, e] = intervals[i]
+		if (s <= curEnd) {
+			curEnd = Math.max(curEnd, e)
+		} else {
+			merged.push([curStart, curEnd])
+			curStart = s
+			curEnd = e
+		}
+	}
+	merged.push([curStart, curEnd])
+	return merged
 }
 
 /**
- * Схлопывает массив слотов {start:"HH:mm", end:"HH:mm"} в непрерывные диапазоны "HH:mm–HH:mm".
- * Слоты считаем «смежными», если следующий начинается ровно через timeGap минут после предыдущего начала.
- * Пример: [08:00–09:00], [08:30–09:30], timeGap=30 → общий коридор 08:00–09:30 (при длительности 60).
+ * Свободные интервалы как дополнение к busy
+ * dayStartMin/dayEndMin позволяют для "сегодня" начинать от текущего времени
  */
-function collapseToRanges(slots = [], timeGapMin) {
-	if (!Array.isArray(slots) || !slots.length) return []
+function buildFreeIntervalsFromBusy(busy, dayStartMin, dayEndMin) {
+	const free = []
+	let cursor = dayStartMin
 
-	// Отсортируем по start
-	const sorted = [...slots].sort(
-		(a, b) => toMinutes(a.start) - toMinutes(b.start)
-	)
+	for (const [s, e] of busy) {
+		// busy уже в рамках рабочего окна, но всё равно подстрахуемся
+		if (e <= dayStartMin || s >= dayEndMin) continue
 
-	const ranges = []
-	let curStart = sorted[0].start
-	let curEnd = sorted[0].end
-	let prevStartMin = toMinutes(sorted[0].start)
+		const bs = Math.max(s, dayStartMin)
+		const be = Math.min(e, dayEndMin)
 
-	for (let i = 1; i < sorted.length; i++) {
-		const s = sorted[i]
-		const startMin = toMinutes(s.start)
-		const endMin = toMinutes(s.end)
-
-		// Если следующий слот стартует через timeGap минут после предыдущего старта — считаем непрерывным коридором
-		if (startMin - prevStartMin === timeGapMin) {
-			// расширяем конец
-			if (endMin > toMinutes(curEnd)) curEnd = s.end
-		} else {
-			// фиксируем предыдущий коридор
-			ranges.push(`${curStart}–${curEnd}`)
-			curStart = s.start
-			curEnd = s.end
+		if (bs > cursor) {
+			free.push([cursor, bs])
 		}
-		prevStartMin = startMin
+		cursor = Math.max(cursor, be)
 	}
-	ranges.push(`${curStart}–${curEnd}`)
-	return ranges
+
+	if (cursor < dayEndMin) {
+		free.push([cursor, dayEndMin])
+	}
+
+	return free
 }
+
+/**
+ * 🔹 Режем свободные интервалы, учитывая буфер на дорогу.
+ * На каждом свободном окне откусываем TRAVEL_BUFFER_MIN с начала и конца.
+ */
+function applyTravelBufferToFreeIntervals(free, bufferMin = TRAVEL_BUFFER_MIN) {
+	if (!bufferMin) return free
+
+	return (
+		free
+			.map(([s, e]) => [s + bufferMin, e - bufferMin])
+			// можно требовать хотя бы 30 минут, чтобы слот имел смысл
+			.filter(([s, e]) => e - s >= 30)
+	)
+}
+
+/** Превращаем интервалы в строки "HH:MM–HH:MM" */
+function intervalsToRanges(intervals, minLength = 15) {
+	return intervals
+		.filter(([s, e]) => e - s >= minLength)
+		.map(([s, e]) => `${minutesToTime(s)}–${minutesToTime(e)}`)
+}
+
+/** строим "плоские" слоты для fallback-поля slots */
+function buildFlatSlotsLabel(dayLabel, freeIntervals, limit) {
+	const slots = []
+	for (const [s, e] of freeIntervals) {
+		for (let t = s; t + 15 <= e; t += SLOT_STEP_MIN) {
+			slots.push(`${dayLabel} ${minutesToTime(t)}`)
+			if (slots.length >= limit) return slots
+		}
+	}
+	return slots
+}
+
+/* ========= API handler ========= */
 
 export async function GET(req) {
 	try {
 		const { searchParams } = new URL(req.url)
-		const limit = Math.max(
-			1,
-			Math.min(20, Number(searchParams.get('limit') || 6))
-		)
+		const limit = Number(searchParams.get('limit') || '12') || 12
 
-		const availability = await getAvailability()
-		const days = await getAvailableDaysForCalendar()
-		if (!availability || !days?.length) {
-			return NextResponse.json({
-				ok: true,
-				slots: [],
-				days: { today: null, tomorrow: null, next: null },
-			})
+		const now = DateTime.now().setZone(ZONE)
+		const today = now.startOf('day')
+		const tomorrow = today.plus({ days: 1 })
+		const afterTomorrow = today.plus({ days: 2 })
+
+		const todayISO = today.toISODate()
+		const tomorrowISO = tomorrow.toISODate()
+		const afterTomorrowISO = afterTomorrow.toISODate()
+
+		// Все WorkOrder с визитами на 3 дня вперёд
+		const orders = await db.workOrder.findMany({
+			where: {
+				visitDate: {
+					gte: today.toJSDate(),
+					lt: afterTomorrow.plus({ days: 1 }).toJSDate(),
+				},
+				visitTime: { not: null },
+			},
+			orderBy: [{ visitDate: 'asc' }, { visitTime: 'asc' }, { id: 'asc' }],
+		})
+
+		// Все услуги с duration
+		const services = await db.service.findMany({
+			select: { name: true, duration: true },
+		})
+		const durationByName = new Map()
+		for (const s of services) {
+			if (s.name && typeof s.duration === 'number') {
+				durationByName.set(s.name.trim().toLowerCase(), s.duration)
+			}
 		}
 
-		const now = DateTime.now().setZone(TIMEZONE)
-		const outSlots = [] // старый формат: ["Dziś 13:00", "Jutro 08:00", "Śr 22.01 10:00", ...]
-		const resultDays = { today: null, tomorrow: null, next: null } // новый формат
+		// Группируем заказы по дате (yyyy-MM-dd по Польше)
+		const ordersByDayKey = new Map()
+		for (const o of orders) {
+			if (!o.visitDate) continue
+			const dt = DateTime.fromJSDate(o.visitDate, { zone: ZONE }).startOf('day')
+			if (!dt.isValid) continue
+			const key = dt.toISODate()
+			if (!ordersByDayKey.has(key)) ordersByDayKey.set(key, [])
+			ordersByDayKey.get(key).push(o)
+		}
 
-		// подготовим ссылки на сегодня/завтра
-		const todayKey = now.toFormat('yyyy-MM-dd')
-		const tomorrowKey = now.plus({ days: 1 }).toFormat('yyyy-MM-dd')
+		// старт "рабочего окна" для сегодня: от текущего времени
+		const nowMinutes = now.hour * 60 + now.minute
+		const todayStartMin = Math.max(WORK_DAY_START_MIN, nowMinutes)
 
-		// Пройдём по доступным дням, генерируя слоты и одновременно строя "коридоры"
-		for (const dayDate of days) {
-			if (outSlots.length >= limit) break
+		// helper: собрать структуру по дню
+		const mkDayStruct = (isoKey, isToday) => {
+			const dayOrders = ordersByDayKey.get(isoKey) || []
+			const busy = buildBusyIntervalsForDay(dayOrders, durationByName)
 
-			const day = DateTime.fromJSDate(dayDate, { zone: TIMEZONE })
-			const isToday = day.hasSame(now, 'day')
-			const isTomorrow = day.hasSame(now.plus({ days: 1 }), 'day')
+			const dayStart = isToday ? todayStartMin : WORK_DAY_START_MIN
+			const dayEnd = WORK_DAY_END_MIN
 
-			const slots = await generateAvailableSlots(
-				day.toJSDate(),
-				DEFAULT_DURATION_MIN,
-				availability.timeGap || 30
+			// если уже позже рабочего дня — свободных нет
+			if (dayStart >= dayEnd) {
+				return { ranges: [], free: [] }
+			}
+
+			// сначала обычные свободные интервалы
+			const freeRaw = buildFreeIntervalsFromBusy(busy, dayStart, dayEnd)
+			// затем режем края с учётом буфера на дорогу
+			const free = applyTravelBufferToFreeIntervals(freeRaw, TRAVEL_BUFFER_MIN)
+
+			const ranges = intervalsToRanges(free, 15)
+			return { ranges, free }
+		}
+
+		const todayStruct = mkDayStruct(todayISO, true)
+		const tomorrowStruct = mkDayStruct(tomorrowISO, false)
+		const nextStruct = mkDayStruct(afterTomorrowISO, false)
+
+		// собираем flat slots (fallback)
+		const slots = []
+
+		if (todayStruct.free.length) {
+			slots.push(
+				...buildFlatSlotsLabel('Dziś', todayStruct.free, limit - slots.length)
 			)
-
-			// фильтр для сегодняшнего с учётом LEAD_MIN
-			const usable = isToday
-				? slots.filter(s => {
-						const startDt = day.set({
-							hour: Number(s.start.split(':')[0]),
-							minute: Number(s.start.split(':')[1]),
-						})
-						return startDt >= now.plus({ minutes: LEAD_MIN })
-				  })
-				: slots
-
-			// наполняем старый список для «точечных» слотов
-			for (const s of usable) {
-				if (outSlots.length >= limit) break
-				const labelPrefix = isToday
-					? 'Dziś'
-					: isTomorrow
-					? 'Jutro'
-					: day.setLocale('pl').toFormat('ccc dd.MM')
-				outSlots.push(`${labelPrefix} ${s.start}`)
-			}
-
-			// посчитаем непрерывные коридоры для сегодня/завтра (для бегущей строки)
-			if (isToday || isTomorrow) {
-				const ranges = collapseToRanges(usable, availability.timeGap || 30)
-				const key = isToday ? 'today' : 'tomorrow'
-				resultDays[key] = {
-					date: day.toISODate(),
-					label: isToday ? 'Dziś' : 'Jutro',
-					ranges, // ["08:00–12:00", "13:00–17:00"]
-				}
-			}
 		}
-
-		// ближайший «дальний» день (если нет сегодня/завтра)
-		if (!resultDays.today && !resultDays.tomorrow && outSlots.length) {
-			// outSlots уже содержит, например: "Śr 22.01 10:00"
-			resultDays.next = { label: outSlots[0] }
+		if (slots.length < limit && tomorrowStruct.free.length) {
+			slots.push(
+				...buildFlatSlotsLabel(
+					'Jutro',
+					tomorrowStruct.free,
+					limit - slots.length
+				)
+			)
+		}
+		if (slots.length < limit && nextStruct.free.length) {
+			slots.push(
+				...buildFlatSlotsLabel(
+					'Pojutrze',
+					nextStruct.free,
+					limit - slots.length
+				)
+			)
 		}
 
 		return NextResponse.json({
 			ok: true,
-			slots: outSlots.slice(0, limit),
-			days: resultDays,
+			days: {
+				today: { ranges: todayStruct.ranges },
+				tomorrow: { ranges: tomorrowStruct.ranges },
+				next: { ranges: nextStruct.ranges },
+			},
+			slots,
 		})
 	} catch (e) {
-		console.error('GET /api/availability/next failed:', e)
+		console.error('/api/availability/next FAILED:', e)
 		return NextResponse.json(
-			{
-				ok: false,
-				slots: [],
-				days: { today: null, tomorrow: null, next: null },
-			},
+			{ ok: false, error: 'Server error' },
 			{ status: 500 }
 		)
 	}

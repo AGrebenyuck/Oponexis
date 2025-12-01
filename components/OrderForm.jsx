@@ -1,9 +1,10 @@
-// components/OrderForm.jsx
 'use client'
 
 import { useState } from 'react'
+import { getDetailsContent } from './serviceDetails' // 🔹 подключаем хелпер
 import MultiServicePicker from './ui/MultiServicePicker'
 import OrderAddressInput from './ui/OrderAddressInput'
+import Popover from './ui/Popover'
 
 export default function OrderForm({
 	initialData,
@@ -40,6 +41,11 @@ export default function OrderForm({
 		lat: null,
 		lng: null,
 		notes: '',
+
+		// 🔹 фактура
+		wantsInvoice: false,
+		invoiceNip: '',
+		invoiceEmail: '',
 	})
 
 	const [errors, setErrors] = useState({
@@ -49,18 +55,37 @@ export default function OrderForm({
 		regNumber: '',
 		address: '',
 		form: '',
+		invoiceNip: '',
+		invoiceEmail: '',
 	})
 
 	const [loading, setLoading] = useState(false)
 
 	function handleChange(e) {
-		const { name, value } = e.target
+		const { name, value, type, checked } = e.target
 
 		if (name === 'regNumber') {
 			const upper = value.toUpperCase()
 			setForm(prev => ({ ...prev, regNumber: upper }))
 			if (upper.trim()) {
 				setErrors(prev => ({ ...prev, regNumber: '' }))
+			}
+			return
+		}
+
+		if (type === 'checkbox') {
+			setForm(prev => ({ ...prev, [name]: checked }))
+			if (!checked && name === 'wantsInvoice') {
+				setForm(prev => ({
+					...prev,
+					invoiceNip: '',
+					invoiceEmail: '',
+				}))
+				setErrors(prev => ({
+					...prev,
+					invoiceNip: '',
+					invoiceEmail: '',
+				}))
 			}
 			return
 		}
@@ -73,7 +98,6 @@ export default function OrderForm({
 
 	// 🔥 важное место: ручной ввод vs карта
 	function handleAddressChange(value) {
-		// если строка — это ручной ввод → сбрасываем lat/lng
 		if (typeof value === 'string') {
 			setForm(prev => ({
 				...prev,
@@ -87,7 +111,6 @@ export default function OrderForm({
 			return
 		}
 
-		// если объект — пришло с карты
 		if (value && typeof value === 'object') {
 			setForm(prev => ({
 				...prev,
@@ -114,12 +137,35 @@ export default function OrderForm({
 		})
 
 		const names = ids.map(id => idToName.get(String(id))).filter(Boolean)
-
-		// убираем дубли (когда выбран родитель и подуслуга)
 		const uniq = Array.from(new Set(names))
-
 		return uniq.join(' + ')
 	}
+
+	// список имён выбранных услуг
+	function getSelectedServiceNames(ids) {
+		if (!Array.isArray(ids) || !ids.length) return []
+
+		const idToName = new Map()
+		services.forEach(s => {
+			if (s.id != null) idToName.set(String(s.id), s.name)
+			;(s.additionalServices || []).forEach(sub => {
+				if (sub.id != null) idToName.set(String(sub.id), sub.name)
+			})
+		})
+
+		const names = ids.map(id => idToName.get(String(id))).filter(Boolean)
+		return Array.from(new Set(names))
+	}
+
+	const selectedNames = getSelectedServiceNames(form.serviceIds)
+
+	// 🔹 собираем контент из хелпера для ВСЕХ выбранных услуг
+	const selectedDetails = selectedNames
+		.map(name => ({
+			name,
+			content: getDetailsContent(name),
+		}))
+		.filter(item => item.content)
 
 	async function handleSubmit(e) {
 		e.preventDefault()
@@ -131,6 +177,8 @@ export default function OrderForm({
 			regNumber: '',
 			address: '',
 			form: '',
+			invoiceNip: '',
+			invoiceEmail: '',
 		})
 
 		let hasError = false
@@ -170,6 +218,30 @@ export default function OrderForm({
 				...prev,
 				address: 'Prosimy podać adres.',
 			}))
+		}
+
+		// валидация фактуры
+		if (form.wantsInvoice) {
+			if (!form.invoiceNip.trim()) {
+				hasError = true
+				setErrors(prev => ({
+					...prev,
+					invoiceNip: 'Prosimy podać NIP do faktury.',
+				}))
+			}
+			if (!form.invoiceEmail.trim()) {
+				hasError = true
+				setErrors(prev => ({
+					...prev,
+					invoiceEmail: 'Prosimy podać e-mail do faktury.',
+				}))
+			} else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.invoiceEmail.trim())) {
+				hasError = true
+				setErrors(prev => ({
+					...prev,
+					invoiceEmail: 'Podaj poprawny adres e-mail.',
+				}))
+			}
 		}
 
 		if (hasError) return
@@ -258,6 +330,30 @@ export default function OrderForm({
 				{errors.service && (
 					<p className='text-xs text-red-400'>{errors.service}</p>
 				)}
+
+				{/* 🔹 Кнопка Szczegóły только если хотя бы одна выбранная услуга поддерживается хелпером */}
+				{selectedDetails.length > 0 && (
+					<div className='text-[11px] text-slate-400 pt-1'>
+						<Popover
+							placement='bottom'
+							arrow
+							content={
+								<div className='space-y-3'>
+									{selectedDetails.map(item => (
+										<div key={item.name}>{item.content}</div>
+									))}
+								</div>
+							}
+						>
+							<button
+								type='button'
+								className='underline underline-offset-2 decoration-slate-500 hover:text-slate-200'
+							>
+								Szczegóły wybranych usług
+							</button>
+						</Popover>
+					</div>
+				)}
 			</div>
 
 			{/* Adres */}
@@ -315,6 +411,60 @@ export default function OrderForm({
 						className='w-full rounded-lg px-3 py-2 text-sm bg-slate-800/80 border border-slate-700 text-slate-100'
 					/>
 				</div>
+			</div>
+
+			{/* Faktura VAT */}
+			<div className='space-y-2 pt-1 border-t border-slate-800/60'>
+				<label className='flex items-center gap-2 text-xs text-slate-300'>
+					<input
+						type='checkbox'
+						name='wantsInvoice'
+						checked={form.wantsInvoice}
+						onChange={handleChange}
+						className='h-4 w-4 rounded border-slate-600 bg-slate-800'
+					/>
+					<span>Chcę otrzymać fakturę za usługę</span>
+				</label>
+
+				{form.wantsInvoice && (
+					<div className='grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1'>
+						<div className='space-y-1'>
+							<label className='text-xs text-slate-400'>
+								NIP <span className='text-red-400'>*</span>
+							</label>
+							<input
+								name='invoiceNip'
+								value={form.invoiceNip}
+								onChange={handleChange}
+								placeholder='Np. 1234567890'
+								className={`w-full rounded-lg px-3 py-2 text-sm bg-slate-800/80 border ${
+									errors.invoiceNip ? 'border-red-500' : 'border-slate-700'
+								} text-slate-100`}
+							/>
+							{errors.invoiceNip && (
+								<p className='text-xs text-red-400'>{errors.invoiceNip}</p>
+							)}
+						</div>
+
+						<div className='space-y-1'>
+							<label className='text-xs text-slate-400'>
+								E-mail do faktury <span className='text-red-400'>*</span>
+							</label>
+							<input
+								name='invoiceEmail'
+								value={form.invoiceEmail}
+								onChange={handleChange}
+								placeholder='Np. firma@domena.pl'
+								className={`w-full rounded-lg px-3 py-2 text-sm bg-slate-800/80 border ${
+									errors.invoiceEmail ? 'border-red-500' : 'border-slate-700'
+								} text-slate-100`}
+							/>
+							{errors.invoiceEmail && (
+								<p className='text-xs text-red-400'>{errors.invoiceEmail}</p>
+							)}
+						</div>
+					</div>
+				)}
 			</div>
 
 			{/* Uwagi */}

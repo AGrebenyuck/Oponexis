@@ -71,10 +71,10 @@ function InfoPills({ todayRanges }) {
 						strokeLinejoin='round'
 					/>
 				</svg>
-				Oddzwonimy w <b className='font-semibold'>5&nbsp;min</b>
+				Oddzwonimy w <b className='font-semibold'>7&nbsp;min</b>
 			</span>
 
-			{todayRanges?.length ? (
+			{/* {todayRanges?.length ? (
 				<span className='inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 text-white/90 px-3 py-1 text-xs'>
 					<svg
 						width='14'
@@ -99,7 +99,7 @@ function InfoPills({ todayRanges }) {
 				<span className='inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 text-white/80 px-3 py-1 text-xs'>
 					Dziś miejsca szybko się zapełniają — zostaw zgłoszenie
 				</span>
-			)}
+			)} */}
 		</div>
 	)
 }

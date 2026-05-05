@@ -160,6 +160,7 @@ export default function AvailabilityBar({
 	showSurcharges = true,
 	surcharges = DEFAULT_SURCHARGES,
 	cadence = 2, // как часто «вмешивать» сообщения о доплатах среди бенефитов
+	showAvailability = false,
 }) {
 	const [days, setDays] = useState({ today: null, tomorrow: null, next: null })
 	const [slots, setSlots] = useState([])
@@ -168,13 +169,28 @@ export default function AvailabilityBar({
 
 	// ---- load once
 	useEffect(() => {
+		if (!showAvailability) {
+			setSlots([])
+			setDays({ today: null, tomorrow: null, next: null })
+			setState({ loading: false, error: false })
+			return
+		}
+
 		const ac = new AbortController()
+
 		;(async () => {
 			try {
 				setState({ loading: true, error: false })
-				const res = await fetch(api, { cache: 'no-store', signal: ac.signal })
+
+				const res = await fetch(api, {
+					cache: 'no-store',
+					signal: ac.signal,
+				})
+
 				if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
 				const json = await res.json()
+
 				setSlots(Array.isArray(json?.slots) ? json.slots : [])
 				setDays(json?.days || { today: null, tomorrow: null, next: null })
 				setState({ loading: false, error: false })
@@ -183,8 +199,9 @@ export default function AvailabilityBar({
 				setState({ loading: false, error: true })
 			}
 		})()
+
 		return () => ac.abort()
-	}, [api])
+	}, [api, showAvailability])
 
 	// ---- sticky offset
 	const headerRef = useRef(null)
@@ -204,11 +221,13 @@ export default function AvailabilityBar({
 
 	// ---- данные → сообщения
 	const playlist = useMemo(() => {
-		const mains = state.loading
-			? [{ type: 'info', text: 'Sprawdzamy wolne terminy…' }]
-			: state.error
-			? [{ type: 'info', text: 'Brak połączenia — spróbuj ponownie.' }]
-			: buildMainMessages(days, slots)
+		const mains = showAvailability
+			? state.loading
+				? [{ type: 'info', text: 'Sprawdzamy wolne terminy…' }]
+				: state.error
+				? [{ type: 'info', text: 'Brak połączenia — spróbuj ponownie.' }]
+				: buildMainMessages(days, slots)
+			: []
 
 		const bens = (benefits || [])
 			.filter(Boolean)
@@ -226,7 +245,16 @@ export default function AvailabilityBar({
 		// аккуратно «вмешиваем» доплаты
 		const alerts = buildSurchargeMessages(surcharges, showSurcharges)
 		return interleave(seq, alerts, cadence)
-	}, [state, days, slots, benefits, surcharges, showSurcharges, cadence])
+	}, [
+		state,
+		days,
+		slots,
+		benefits,
+		surcharges,
+		showSurcharges,
+		cadence,
+		showAvailability,
+	])
 
 	if (!playlist.length) return null
 

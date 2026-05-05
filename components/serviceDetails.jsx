@@ -51,19 +51,40 @@ export function getDetailsContent(cardKey) {
 
 	if (cardKey === 'Pomoc z oponą') {
 		return (
-			<div className='space-y-2 text-xs sm:text-[13px]'>
-				<h4 className='font-semibold text-secondary-orange mb-1'>
-					Pomoc z oponą
-				</h4>
-				<ul className='list-disc list-inside space-y-1 text-white'>
-					<li>Dojeżdżamy na miejsce.</li>
-					<li>Sprawdzamy stan opony i felgi.</li>
-					<li>
-						Wykonujemy naprawę dojazdową (sznur naprawczy), żebyś mógł
-						bezpiecznie dojechać.
-					</li>
-					<li>W razie potrzeby możemy założyć koło zapasowe (jeśli jest).</li>
-				</ul>
+			<div className='space-y-3 text-xs sm:text-[13px]'>
+				<div>
+					<h4 className='font-semibold text-secondary-orange mb-1'>
+						Pomoc z oponą
+					</h4>
+
+					<ul className='list-disc list-inside space-y-1 text-white'>
+						<li>Dokładnie sprawdzamy oponę i felgę.</li>
+						<li>Lokalizujemy miejsce uszkodzenia.</li>
+						<li>
+							Wykonujemy profesjonalną naprawę, jeśli uszkodzenie pozwala na
+							bezpieczną jazdę.
+						</li>
+						<li>
+							Naprawa może obejmować łatki, wkłady lub naprawę od wewnątrz — w
+							zależności od rodzaju uszkodzenia.
+						</li>
+						<li>Pompujemy koło i kontrolujemy ciśnienie.</li>
+						<li>Jeśli jest taka potrzeba, możemy również wyważyć koło.</li>
+					</ul>
+				</div>
+
+				<div className='rounded-xl border border-white/10 bg-white/5 p-3'>
+					<p className='font-semibold text-white mb-1'>
+						Gdy naprawa nie jest możliwa na miejscu:
+					</p>
+
+					<ul className='list-disc list-inside space-y-1 text-white/90'>
+						<li>możemy wymienić koło na zapasowe, jeśli jest dostępne,</li>
+						<li>
+							pomożemy zorganizować dalszy serwis lub bezpieczne rozwiązanie.
+						</li>
+					</ul>
+				</div>
 			</div>
 		)
 	}

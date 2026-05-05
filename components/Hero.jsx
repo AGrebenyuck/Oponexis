@@ -63,7 +63,8 @@ const Hero = memo(({ initialReviews = null }) => {
 						{/* подзаголовок */}
 						<p className='mt-4 sm:mt-6 text-white text-base sm:text-lg md:text-xl max-w-[56ch] drop-shadow-[0_1px_1px_rgba(0,0,0,.35)]'>
 							Zajmujemy się <b>wymianą i&nbsp;wyważeniem opon</b> pod Twoim
-							domem lub w&nbsp;pracy.
+							domem lub w&nbsp;pracy — pomagamy także{' '}
+							<b>w razie problemów z oponą</b>.
 						</p>
 
 						{/* преимущества */}
@@ -74,6 +75,9 @@ const Hero = memo(({ initialReviews = null }) => {
 							<ul className='flex flex-wrap items-center gap-x-6 gap-y-2'>
 								<BenefitPill>Darmowy dojazd tam, gdzie jesteś</BenefitPill>
 								<BenefitPill>Cena jak w warsztacie</BenefitPill>
+								<BenefitPill>
+									Szybkie terminy bez kolejek, nawet dziś lub jutro
+								</BenefitPill>
 							</ul>
 						</div>
 

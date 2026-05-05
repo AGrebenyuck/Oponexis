@@ -97,7 +97,7 @@ const RAW = [
 		footnotes: [
 			{
 				mark: '*',
-				text: 'Wykonujemy dojazdowy remont opony (sznurek naprawczy)',
+				text: 'Naprawa zależy od uszkodzenia. Jeśli nie będzie możliwa — wymienimy koło lub pomożemy dalej.',
 			},
 		],
 		priceMark: '',

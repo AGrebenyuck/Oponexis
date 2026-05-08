@@ -91,6 +91,10 @@ model WorkOrder {
   color     String?
   carModel  String?
 
+  // koła / opony
+  wheelRimSize String? @db.VarChar(8) // np. R16
+  tireSize     String? @db.VarChar(32) // np. 205/55 R16
+
   address String?
   lat     Float?
   lng     Float?

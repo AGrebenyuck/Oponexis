@@ -17,7 +17,6 @@ function parseVisitDate(str) {
 	return new Date(Date.UTC(y, m - 1, d, 0, 0, 0))
 }
 
-// лёгкая нормализация телефона
 function normalizePhone(raw) {
 	if (!raw) return null
 	const trimmed = String(raw).trim()
@@ -30,78 +29,46 @@ function normalizePhone(raw) {
 	return '+' + digits
 }
 
-// усиленный поиск существующей заявки, чтобы не плодить дубликаты
+function normalizeOptionalText(value) {
+	const trimmed = String(value || '').trim()
+	return trimmed ? trimmed : null
+}
+
+function normalizeWheelRimSize(value) {
+	const raw = String(value || '')
+		.trim()
+		.toUpperCase()
+		.replace(/\s+/g, '')
+	if (!raw) return null
+	const normalized = raw.startsWith('R') ? raw : `R${raw}`
+	return /^R(1[3-9]|2[0-2])$/.test(normalized) ? normalized : null
+}
+
+// Ищем только реальный дубль текущей формы.
+// ВАЖНО: больше нет fallback "любой последний по leadId/phone",
+// потому что он обновлял старые прошлогодние записи вместо создания нового заказа.
 async function findExistingWorkOrder({
 	leadId,
 	phone,
 	visitDateObj,
 	visitTime,
 }) {
-	let existing = null
+	if (!visitDateObj || !visitTime) return null
 
-	// 1) leadId + дата + время
-	if (leadId && visitDateObj) {
-		existing = await db.workOrder.findFirst({
-			where: {
-				leadId,
-				visitDate: visitDateObj,
-				visitTime: visitTime || null,
-			},
-		})
-		if (existing) return existing
-	}
-
-	// 2) leadId + дата (без времени)
-	if (!existing && leadId && visitDateObj) {
-		existing = await db.workOrder.findFirst({
-			where: { leadId, visitDate: visitDateObj },
+	if (leadId) {
+		const byLeadAndSlot = await db.workOrder.findFirst({
+			where: { leadId, visitDate: visitDateObj, visitTime },
 			orderBy: { id: 'desc' },
 		})
-		if (existing) return existing
+		if (byLeadAndSlot) return byLeadAndSlot
 	}
 
-	// 3) телефон + дата + время
-	if (!existing && phone && visitDateObj) {
-		existing = await db.workOrder.findFirst({
-			where: {
-				leadId: null,
-				phone,
-				visitDate: visitDateObj,
-				visitTime: visitTime || null,
-			},
-		})
-		if (existing) return existing
-	}
-
-	// 4) телефон + дата (без времени)
-	if (!existing && phone && visitDateObj) {
-		existing = await db.workOrder.findFirst({
-			where: {
-				leadId: null,
-				phone,
-				visitDate: visitDateObj,
-			},
+	if (phone) {
+		const byPhoneAndSlot = await db.workOrder.findFirst({
+			where: { phone, visitDate: visitDateObj, visitTime },
 			orderBy: { id: 'desc' },
 		})
-		if (existing) return existing
-	}
-
-	// 5) fallback: любой последний по leadId
-	if (!existing && leadId) {
-		existing = await db.workOrder.findFirst({
-			where: { leadId },
-			orderBy: { id: 'desc' },
-		})
-		if (existing) return existing
-	}
-
-	// 6) fallback: любой последний по телефону
-	if (!existing && phone) {
-		existing = await db.workOrder.findFirst({
-			where: { phone },
-			orderBy: { id: 'desc' },
-		})
-		if (existing) return existing
+		if (byPhoneAndSlot) return byPhoneAndSlot
 	}
 
 	return null
@@ -123,10 +90,10 @@ export async function POST(req) {
 			lat,
 			lng,
 			notes,
-			visitDate, // "YYYY-MM-DD"
-			visitTime, // "HH:MM"
-
-			// faktura
+			visitDate,
+			visitTime,
+			wheelRimSize,
+			tireSize,
 			wantsInvoice,
 			invoiceNip,
 			invoiceEmail,
@@ -139,16 +106,22 @@ export async function POST(req) {
 			)
 		}
 
+		const normalizedWheelRimSize = normalizeWheelRimSize(wheelRimSize)
+		if (!normalizedWheelRimSize) {
+			return NextResponse.json(
+				{ ok: false, error: 'Prosimy wybrać poprawny rozmiar felgi.' },
+				{ status: 400 }
+			)
+		}
+
 		const normalizedPhone = normalizePhone(phone) || phone.trim()
 		const finalLat = typeof lat === 'number' ? lat : null
 		const finalLng = typeof lng === 'number' ? lng : null
-
 		const visitDateObj =
 			typeof visitDate === 'string' && visitDate
 				? parseVisitDate(visitDate)
 				: null
 
-		// ищем дубликат/существующую заявку
 		const existingOrder = await findExistingWorkOrder({
 			leadId: leadId || null,
 			phone: normalizedPhone,
@@ -161,36 +134,32 @@ export async function POST(req) {
 			name: name.trim(),
 			phone: normalizedPhone,
 			service: service || null,
-			regNumber: regNumber || null,
-			color: color || null,
-			carModel: carModel || null,
-			address: address || null,
+			regNumber: normalizeOptionalText(regNumber),
+			color: normalizeOptionalText(color),
+			carModel: normalizeOptionalText(carModel),
+			address: normalizeOptionalText(address),
 			lat: finalLat,
 			lng: finalLng,
-			notes: notes || null,
+			notes: normalizeOptionalText(notes),
 			visitDate: visitDateObj,
 			visitTime: visitTime || null,
-
-			// faktura
+			wheelRimSize: normalizedWheelRimSize,
+			tireSize: normalizeOptionalText(tireSize),
 			wantsInvoice: !!wantsInvoice,
-			invoiceNip: wantsInvoice ? invoiceNip || null : null,
-			invoiceEmail: wantsInvoice ? invoiceEmail || null : null,
+			invoiceNip: wantsInvoice ? normalizeOptionalText(invoiceNip) : null,
+			invoiceEmail: wantsInvoice ? normalizeOptionalText(invoiceEmail) : null,
 		}
 
 		let workOrder
-
 		if (existingOrder) {
-			// 🔄 обновляем существующую запись
 			workOrder = await db.workOrder.update({
 				where: { id: existingOrder.id },
 				data,
 			})
 		} else {
-			// 🆕 создаём новую
 			workOrder = await db.workOrder.create({ data })
 		}
 
-		// отмечаем SmsFormLog
 		try {
 			if (workOrder.leadId) {
 				await markSmsFormCompletedByLead(workOrder.leadId)
@@ -204,7 +173,6 @@ export async function POST(req) {
 			console.error('[POST /api/order/client] markSmsFormCompleted failed:', e)
 		}
 
-		// 🔔 Telegram: либо обновляем существующую карточку, либо создаём новую
 		try {
 			if (existingOrder && existingOrder.telegramMessageId) {
 				await updateWorkOrderMessage(workOrder)
@@ -221,14 +189,17 @@ export async function POST(req) {
 			)
 		}
 
-		// 📅 обновляем закреплённый график
 		try {
 			await updateScheduleMessage()
 		} catch (e) {
 			console.error('[POST /api/order/client] updateScheduleMessage failed:', e)
 		}
 
-		return NextResponse.json({ ok: true, order: workOrder })
+		return NextResponse.json({
+			ok: true,
+			mode: existingOrder ? 'updated' : 'created',
+			order: workOrder,
+		})
 	} catch (e) {
 		console.error('POST /api/order/client failed:', e)
 		return NextResponse.json(

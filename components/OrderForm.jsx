@@ -7,6 +7,8 @@ import OrderAddressInput from './ui/OrderAddressInput'
 import { getDetailsContent } from './serviceDetails' // 🔹 подключаем хелпер
 import Popover from './ui/popover'
 
+const RIM_SIZES = Array.from({ length: 10 }, (_, i) => `R${13 + i}`)
+
 export default function OrderForm({
 	initialData,
 	services,
@@ -43,6 +45,10 @@ export default function OrderForm({
 		lng: null,
 		notes: '',
 
+		// 🔹 koła / opony
+		wheelRimSize: '',
+		tireSize: '',
+
 		// 🔹 фактура
 		wantsInvoice: false,
 		invoiceNip: '',
@@ -55,6 +61,7 @@ export default function OrderForm({
 		service: '',
 		regNumber: '',
 		address: '',
+		wheelRimSize: '',
 		form: '',
 		invoiceNip: '',
 		invoiceEmail: '',
@@ -177,6 +184,7 @@ export default function OrderForm({
 			service: '',
 			regNumber: '',
 			address: '',
+			wheelRimSize: '',
 			form: '',
 			invoiceNip: '',
 			invoiceEmail: '',
@@ -218,6 +226,14 @@ export default function OrderForm({
 			setErrors(prev => ({
 				...prev,
 				address: 'Prosimy podać adres.',
+			}))
+		}
+
+		if (!form.wheelRimSize.trim()) {
+			hasError = true
+			setErrors(prev => ({
+				...prev,
+				wheelRimSize: 'Prosimy wybrać rozmiar felgi.',
 			}))
 		}
 
@@ -324,7 +340,11 @@ export default function OrderForm({
 						}
 					}}
 					placeholder='Wybierz usługę…'
-					label='Usługa'
+					label=<>
+						<p>
+							Usługa <span className='text-red-400'>*</span>
+						</p>
+					</>
 					variant='order'
 					dropdownPosition='bottom'
 				/>
@@ -389,6 +409,95 @@ export default function OrderForm({
 				)}
 			</div>
 
+			{/* Rozmiar felgi + opony */}
+			<div className='space-y-3 rounded-xl border border-slate-800/70 bg-slate-900/35 p-3'>
+				<div className='flex items-start justify-between gap-3'>
+					<div>
+						<p className='text-xs font-medium text-slate-300'>Dane opony</p>
+						<p className='text-[11px] text-slate-500'>
+							Pomaga nam dobrać sprzęt i przygotować wizytę.
+						</p>
+					</div>
+
+					<Popover
+						placement='bottom'
+						arrow
+						content={
+							<div className='space-y-3 text-xs sm:text-[13px]'>
+								<div>
+									<h4 className='font-semibold text-secondary-orange mb-1'>
+										Gdzie znaleźć rozmiar opony?
+									</h4>
+									<p className='text-white/90'>
+										Rozmiar znajduje się na boku opony. Najczęściej wygląda tak:
+									</p>
+								</div>
+
+								<div className='rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-center font-semibold tracking-wide text-white'>
+									205/55 R16
+								</div>
+
+								<ul className='list-disc list-inside space-y-1 text-white/90'>
+									<li>
+										<b>R16</b> to średnica felgi — wybierz go w formularzu.
+									</li>
+									<li>
+										<b>205/55</b> to rozmiar opony — możesz go wpisać, jeśli
+										znasz.
+									</li>
+								</ul>
+							</div>
+						}
+					>
+						<button
+							type='button'
+							className='text-[11px] underline underline-offset-2 decoration-slate-500 text-slate-400 hover:text-slate-200 whitespace-nowrap'
+						>
+							Gdzie to znaleźć?
+						</button>
+					</Popover>
+				</div>
+
+				<div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+					<div className='space-y-1'>
+						<label className='text-xs text-slate-400'>
+							Średnica felgi <span className='text-red-400'>*</span>
+						</label>
+						<select
+							name='wheelRimSize'
+							value={form.wheelRimSize}
+							onChange={handleChange}
+							className={`w-full rounded-lg px-3 py-2 text-sm bg-slate-800/80 border ${
+								errors.wheelRimSize ? 'border-red-500' : 'border-slate-700'
+							} text-slate-100`}
+						>
+							<option value=''>Wybierz</option>
+							{RIM_SIZES.map(size => (
+								<option key={size} value={size}>
+									{size}
+								</option>
+							))}
+						</select>
+						{errors.wheelRimSize && (
+							<p className='text-xs text-red-400'>{errors.wheelRimSize}</p>
+						)}
+					</div>
+
+					<div className='space-y-1'>
+						<label className='text-xs text-slate-400'>
+							Rozmiar opony{' '}
+							<span className='text-slate-500'>(opcjonalnie)</span>
+						</label>
+						<input
+							name='tireSize'
+							value={form.tireSize}
+							onChange={handleChange}
+							placeholder='Np. 205/55'
+							className='w-full rounded-lg px-3 py-2 text-sm bg-slate-800/80 border border-slate-700 text-slate-100'
+						/>
+					</div>
+				</div>
+			</div>
 			{/* Kolor + Model */}
 			<div className='grid grid-cols-2 gap-3'>
 				<div className='space-y-1'>

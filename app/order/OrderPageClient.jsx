@@ -60,7 +60,7 @@ export default function OrderPageClient({ params, services }) {
 
 	return (
 		<div className='min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center px-4'>
-			<div className='w-full max-w-md bg-slate-900/80 border border-slate-700 rounded-2xl p-6 shadow-xl'>
+			<div className='w-full max-w-lg bg-slate-900/80 border border-slate-700 rounded-2xl p-6 shadow-xl'>
 				{success ? (
 					<p className='text-emerald-400 text-sm'>
 						Dziękujemy! Twoje dane zostały zapisane. Do zobaczenia wkrótce 🚗

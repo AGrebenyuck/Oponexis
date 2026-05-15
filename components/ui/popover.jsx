@@ -36,7 +36,7 @@ export default function Popover({
 	cancelText = 'Cancel',
 	arrow = true,
 	className = '',
-	zIndex = 90, // перекрываем слайдер/хедер
+	zIndex = 130, // перекрываем слайдер/хедер
 }) {
 	const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
 	const isControlled = controlledOpen !== undefined

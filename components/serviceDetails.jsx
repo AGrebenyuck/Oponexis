@@ -85,6 +85,19 @@ export function getDetailsContent(cardKey) {
 						</li>
 					</ul>
 				</div>
+				<div className='rounded-xl border border-secondary-orange/20 bg-secondary-orange/10 p-3'>
+					<p className='font-semibold text-white mb-1'>
+						Opona dojazdowa w nagłych sytuacjach
+					</p>
+
+					<p className='text-white/90 leading-relaxed'>
+						Jeśli opona jest zbyt uszkodzona do bezpiecznej naprawy, możemy
+						zapewnić oponę dojazdową, która pozwoli bezpiecznie dojechać do
+						domu.
+					</p>
+
+					<p className='mt-2 text-secondary-orange font-semibold'>Cena 70 zł</p>
+				</div>
 			</div>
 		)
 	}

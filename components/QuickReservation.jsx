@@ -71,7 +71,8 @@ function InfoPills({ todayRanges }) {
 						strokeLinejoin='round'
 					/>
 				</svg>
-				Oddzwonimy w <b className='font-semibold'>7&nbsp;min</b>
+				Średni czas kontaktu:
+				<b className='font-semibold'>7&nbsp;min</b>
 			</span>
 
 			{/* {todayRanges?.length ? (

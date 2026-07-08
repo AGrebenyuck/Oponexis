@@ -107,7 +107,6 @@ export default function MultiServicePicker({
 						const subOptions = (s.additionalServices || []).map((sub, i) => ({
 							value: String(sub.id ?? `${pid}-sub-${i}`),
 							label: sub.name,
-							price: sub.price,
 						}))
 						return (
 							<SelectOption
@@ -116,11 +115,6 @@ export default function MultiServicePicker({
 								subOptions={subOptions}
 							>
 								{String(s.name)}
-								{typeof s.price !== 'undefined' && (
-									<span className='ml-auto opacity-70 text-xs'>
-										{s.price} zł
-									</span>
-								)}
 							</SelectOption>
 						)
 					})}

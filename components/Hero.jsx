@@ -33,17 +33,14 @@ const Hero = memo(({ initialReviews = null }) => {
 			className='relative overflow-hidden'
 		>
 			{/* BG */}
-			<picture className='absolute inset-0 -z-10'>
-				<source media='(max-width: 768px)' srcSet='/bg-mobile.jpg' />
-				<source media='(min-width: 769px)' srcSet='/background-header.jpg' />
-				<Image
-					src='/bg-mobile.jpg'
-					alt='Mobilny serwis opon'
-					fill
-					priority
-					className='object-cover'
-				/>
-			</picture>
+			<Image
+				src='/background-header.webp'
+				alt='Mobilny serwis opon'
+				fill
+				priority
+				sizes='100vw'
+				className='-z-10 object-cover'
+			/>
 			<div className='absolute inset-0 pointer-events-none bg-gradient-to-b from-[#0c2437]/55 via-[#0c2437]/30 to-transparent' />
 
 			<div className='px-4 pt-16 pb-10 sm:px-10 md:px-14 2xl:px-16 lg:py-20 2xl:py-28'>

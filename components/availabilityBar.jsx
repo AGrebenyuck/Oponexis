@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Marquee from 'react-fast-marquee'
+import { crmUrl } from '@/lib/crm'
 
 /* =========================
    Конфиг по умолчанию
@@ -154,7 +155,7 @@ function interleave(seq, alerts, cadence = 2) {
    ========================= */
 export default function AvailabilityBar({
 	headerSelector = 'header',
-	api = '/api/availability/next?limit=12',
+	api = crmUrl('/api/public/availability/next?limit=12'),
 	speed = 30, // px/sec
 	benefits = DEFAULT_BENEFITS,
 	showSurcharges = true,

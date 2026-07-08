@@ -39,7 +39,7 @@ const FAQSection = memo(() => {
 				</div>
 				<div className='relative w-full h-[200px] sm:h-[300px] md:h-[481px]'>
 					<Image
-						src='/faqBg.jpg'
+						src='/faqBg.webp'
 						alt='faq bg'
 						fill={true}
 						style={{ objectFit: 'cover' }}

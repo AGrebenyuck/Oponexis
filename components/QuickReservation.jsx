@@ -1,15 +1,23 @@
 // components/QuickReservation.jsx
 'use client'
 
-import { getServices } from '@/actions/service'
 import Button from '@/components/ui/button'
 import Modal from '@/components/ui/modal'
 import Result from '@/components/ui/result'
+import { crmFetch, getServices } from '@/lib/crm'
 import { gtmPush } from '@/lib/gtm'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
 
 const LS_KEY = 'OPX_QR_FORM'
+
+function getCookie(name) {
+	if (typeof document === 'undefined') return ''
+	return document.cookie
+		.split('; ')
+		.find(row => row.startsWith(`${name}=`))
+		?.split('=')[1]
+}
 
 /* ───────────────── helpers ───────────────── */
 function validateName(raw) {
@@ -50,7 +58,7 @@ function validatePhoneSoft(raw) {
 }
 
 /* ────────────── маленькие плашки над формой ────────────── */
-function InfoPills({ todayRanges }) {
+function InfoPills({ packageInterest, onClearPackage }) {
 	return (
 		<div className='flex flex-wrap items-center gap-2 mb-3 sm:mb-4'>
 			<span className='inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 text-white/90 px-3 py-1 text-xs'>
@@ -101,6 +109,19 @@ function InfoPills({ todayRanges }) {
 					Dziś miejsca szybko się zapełniają — zostaw zgłoszenie
 				</span>
 			)} */}
+			{packageInterest && (
+				<span className='inline-flex items-center gap-2 rounded-full bg-secondary-orange text-white px-3 py-1 text-xs font-semibold'>
+					Pakiet sezonowy: {packageInterest}
+					<button
+						type='button'
+						onClick={onClearPackage}
+						className='rounded-full px-1.5 text-white/85 hover:bg-white/15'
+						aria-label='Usuń wybrany pakiet'
+					>
+						×
+					</button>
+				</span>
+			)}
 		</div>
 	)
 }
@@ -109,11 +130,13 @@ function InfoPills({ todayRanges }) {
 export default function QuickReservation({
 	title = 'Szybka rezerwacja',
 	dropdownPosition = 'top',
+	initialServices = null,
 }) {
-	const [services, setServices] = useState([])
+	const [services, setServices] = useState(initialServices?.prices || [])
 	const [name, setName] = useState('')
 	const [phone, setPhone] = useState('')
 	const [serviceIds, setServiceIds] = useState([]) // string[]
+	const [packageInterest, setPackageInterest] = useState('')
 	const [open, setOpen] = useState(false)
 	const [status, setStatus] = useState(null)
 	const [message, setMessage] = useState('')
@@ -143,6 +166,7 @@ export default function QuickReservation({
 
 	/* ── загрузка прайса ── */
 	useEffect(() => {
+		if (initialServices?.prices?.length) return
 		;(async () => {
 			try {
 				const data = await getServices()
@@ -151,14 +175,14 @@ export default function QuickReservation({
 				console.error('getServices failed', e)
 			}
 		})()
-	}, [])
+	}, [initialServices])
 
 	/* ── загрузка доступности для плашек ── */
 	useEffect(() => {
 		let ignore = false
 		;(async () => {
 			try {
-				const res = await fetch('/api/availability/next?limit=12', {
+				const res = await crmFetch('/api/public/availability/next?limit=12', {
 					cache: 'no-store',
 				})
 				const json = await res.json()
@@ -180,6 +204,7 @@ export default function QuickReservation({
 			const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 			if (saved.name) setName(saved.name)
 			if (saved.phone) setPhone(saved.phone)
+			if (saved.packageInterest) setPackageInterest(saved.packageInterest)
 			if (Array.isArray(saved.serviceIds))
 				setServiceIds(saved.serviceIds.map(String))
 			if (saved.serviceId && !saved.serviceIds)
@@ -208,17 +233,20 @@ export default function QuickReservation({
 	/* ── автоподстановка из карточек оферты ── */
 	useEffect(() => {
 		function onSelected(e) {
+			const packageName = String(e?.detail?.packageName ?? '').trim()
+			if (packageName) setPackageInterest(packageName)
 			const id = String(e?.detail?.serviceId ?? '')
-			if (!id) return
-			setServiceIds(prev => Array.from(new Set([...(prev || []), id])))
 			const prev = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+			const nextServiceIds = id
+				? Array.from(new Set([...(prev.serviceIds || []).map(String), id]))
+				: (prev.serviceIds || []).map(String)
+			if (id) setServiceIds(current => Array.from(new Set([...(current || []), id])))
 			localStorage.setItem(
 				LS_KEY,
 				JSON.stringify({
 					...prev,
-					serviceIds: Array.from(
-						new Set([...(prev.serviceIds || []).map(String), id])
-					),
+					serviceIds: nextServiceIds,
+					packageInterest: packageName || prev.packageInterest || '',
 				})
 			)
 			setTouchedService(true)
@@ -240,6 +268,10 @@ export default function QuickReservation({
 		const prev = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 		localStorage.setItem(LS_KEY, JSON.stringify({ ...prev, serviceIds }))
 	}, [serviceIds])
+	useEffect(() => {
+		const prev = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+		localStorage.setItem(LS_KEY, JSON.stringify({ ...prev, packageInterest }))
+	}, [packageInterest])
 
 	/* ── первичная услуга ── */
 	const primaryServiceId = useMemo(() => {
@@ -275,6 +307,7 @@ export default function QuickReservation({
 		setName('')
 		setPhone('')
 		setServiceIds([])
+		setPackageInterest('')
 
 		setTouchedName(false)
 		setTouchedPhone(false)
@@ -287,7 +320,13 @@ export default function QuickReservation({
 			const prev = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 			localStorage.setItem(
 				LS_KEY,
-				JSON.stringify({ ...prev, name: '', phone: '', serviceIds: [] })
+				JSON.stringify({
+					...prev,
+					name: '',
+					phone: '',
+					serviceIds: [],
+					packageInterest: '',
+				})
 			)
 		} catch {}
 
@@ -353,12 +392,18 @@ export default function QuickReservation({
 		const selectedServiceNames = (serviceIds || [])
 			.map(id => idToName.get(String(id)))
 			.filter(Boolean)
+		const packageLabel = packageInterest
+			? `Pakiet sezonowy: ${packageInterest}`
+			: ''
+		const finalSelectedServiceNames = packageLabel
+			? Array.from(new Set([...selectedServiceNames, packageLabel]))
+			: selectedServiceNames
 
 		const controller = new AbortController()
 		const t = setTimeout(() => controller.abort(), 10000)
 
 		try {
-			const res = await fetch('/api/leads', {
+			const res = await crmFetch('/api/public/leads', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				cache: 'no-store',
@@ -367,9 +412,12 @@ export default function QuickReservation({
 					name: name.trim(),
 					phone: normalizedPhone,
 					serviceId: primaryServiceId,
-					serviceName: idToName.get(String(primaryServiceId)) || '',
+					serviceName:
+						packageLabel || idToName.get(String(primaryServiceId)) || '',
 					selectedServiceIds: serviceIds,
-					selectedServiceNames,
+					selectedServiceNames: finalSelectedServiceNames,
+					partnerCode: getCookie('opx_ref_code') || null,
+					visitorId: getCookie('opx_vid') || null,
 				}),
 			})
 			clearTimeout(t)
@@ -423,7 +471,10 @@ export default function QuickReservation({
 			<h2 className='title text-white mb-3'>{title}</h2>
 
 			{/* Инфо-плашки (перезвон + сегодняшние окна) */}
-			<InfoPills todayRanges={todayRanges} />
+			<InfoPills
+				packageInterest={packageInterest}
+				onClearPackage={() => setPackageInterest('')}
+			/>
 
 			<form
 				onSubmit={submitLead}

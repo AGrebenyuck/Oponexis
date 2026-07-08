@@ -1,6 +1,5 @@
 'use client'
 
-import { checkUser } from '@/lib/checkUser'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -9,7 +8,6 @@ import Button from './ui/button'
 
 const Header = memo(() => {
 	const [menuOpen, setMenuOpen] = useState(false)
-	const [role, setRole] = useState('user')
 	const [isLargeScreen, setIsLargeScreen] = useState(false)
 
 	useEffect(() => {
@@ -17,12 +15,6 @@ const Header = memo(() => {
 			setIsLargeScreen(window?.innerWidth >= 1440)
 		}
 		handleResize()
-		const fetchUser = async () => {
-			const role = await checkUser()
-			setRole(role?.role)
-		}
-
-		fetchUser()
 	}, [])
 
 	const menuVariants = {
@@ -131,25 +123,6 @@ const Header = memo(() => {
 					>
 						Zarezerwuj
 					</Button>
-
-					{/* <SignedOut>
-						<SignInButton
-							mode='modal'
-							forceRedirectUrl='/'
-							signUpForceRedirectUrl='/'
-						>
-							<Button
-								type='alternative'
-								className='md:px-6 md:py-1 lg:px-8 lg:py-2 3xl:px-18 3xl:py-5'
-								suppressHydrationWarning
-							>
-								Login
-							</Button>
-						</SignInButton>
-					</SignedOut>
-					<SignedIn>
-						<UserMenu role={role} />
-					</SignedIn> */}
 
 					{/* Бургер-меню */}
 

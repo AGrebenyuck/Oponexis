@@ -1,4 +1,5 @@
 'use client'
+import { crmFetch } from '@/lib/crm'
 import { useEffect } from 'react'
 
 function setCookie(name, value, days = 180) {
@@ -29,10 +30,10 @@ export default function ReferralInit() {
 
 		const code = ref || getCookie('opx_ref_code')
 		if (code) {
-			fetch('/api/ref/hit', {
+			crmFetch('/api/public/ref/hit', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ code }),
+				body: JSON.stringify({ code, visitorId: getCookie('opx_vid') }),
 			}).catch(() => {})
 		}
 	}, [])

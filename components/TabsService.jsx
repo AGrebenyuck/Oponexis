@@ -1,6 +1,6 @@
 'use client'
 
-import { getServices } from '@/actions/service'
+import { getServices } from '@/lib/crm'
 import { AnimatePresence, motion } from 'framer-motion'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -23,7 +23,7 @@ const tabs = [
 			/>
 		),
 		title: 'Wymiana i wyważanie kół',
-		image: '/wheel-balancing.png',
+		image: '/wheel-balancing.webp',
 		description:
 			'Zapewniamy bezpieczne i profesjonalne wykonanie usługi pod Twoim domem lub miejscem pracy.',
 		descriptionList: [
@@ -40,7 +40,7 @@ const tabs = [
 			/>
 		),
 		title: 'Wymiana oleju',
-		image: '/oil-change.png',
+		image: '/oil-change.webp',
 		description:
 			'Zapewniamy wymianę oleju i filtrów dla prawidłowego działania silnika.',
 		descriptionList: [
@@ -58,13 +58,13 @@ const tabs = [
 			/>
 		),
 		title: 'Sezonowa wymiana opon',
-		image: '/winter-summer.png',
+		image: '/winter-summer.webp',
 		description: 'Przygotowujemy Twój samochód na każde warunki pogodowe.',
 		descriptionList: [
 			'• Demontujemy i montujemy opony sezonowe.',
 			'• Sprawdzamy i dostosowujemy ciśnienie w oponach.',
 			'• Upewniamy się, że koła są prawidłowo zamontowane i solidnie przykręcone.',
-			<p className='text-secondary-orange'>
+			<p key='runflat-note' className='text-secondary-orange'>
 				Uprzejmie informujemy, że opony RunFlat montujemy wyłącznie w naszym
 				serwisie stacjonarnym.
 			</p>,
@@ -78,7 +78,7 @@ const tabs = [
 			/>
 		),
 		title: 'Przechowywanie kół w naszym magazynie',
-		image: '/wheel-hold.png',
+		image: '/wheel-hold.webp',
 		description:
 			'Oszczędzamy Twoją przestrzeń i zapewniamy odpowiednie warunki przechowywania kół.',
 		descriptionList: [

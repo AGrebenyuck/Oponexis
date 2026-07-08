@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { crmFetch } from '@/lib/crm'
 
 function ZL({ value }) {
 	return <>{Number(value || 0).toFixed(2)}&nbsp;zł</>
@@ -17,8 +18,8 @@ export default function PartnerStats({ code }) {
 		setLoading(true)
 		setError(null)
 		try {
-			const res = await fetch(
-				`/api/partners/${code}/stats?months=${months}&days=${DAYS_WINDOW}`,
+			const res = await crmFetch(
+				`/api/public/partners/${code}/stats?months=${months}&days=${DAYS_WINDOW}`,
 				{
 					cache: 'no-store',
 				}

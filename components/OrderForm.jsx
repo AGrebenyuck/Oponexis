@@ -4,6 +4,7 @@ import { useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
 import OrderAddressInput from './ui/OrderAddressInput'
 
+import { crmFetch } from '@/lib/crm'
 import { getDetailsContent } from './serviceDetails' // 🔹 подключаем хелпер
 import Popover from './ui/popover'
 
@@ -19,17 +20,39 @@ export default function OrderForm({
 	// попытка найти услугу из текста, если пришла из ссылки
 	function resolveServiceIds(serviceName) {
 		if (!serviceName) return []
-		const norm = serviceName.trim().toLowerCase()
+		const names = String(serviceName)
+			.split(/\s*(?:,|\+|;|\n)\s*/)
+			.map(name => name.trim().toLowerCase())
+			.filter(Boolean)
 
-		for (const s of services) {
-			if (s.name.trim().toLowerCase() === norm) return [String(s.id)]
-			for (const sub of s.additionalServices || []) {
-				if (sub.name.trim().toLowerCase() === norm) {
-					return [String(s.id), String(sub.id)]
+		if (!names.length) return []
+
+		const ids = []
+		const pushId = id => {
+			const value = String(id)
+			if (!ids.includes(value)) ids.push(value)
+		}
+
+		for (const norm of names) {
+			for (const service of services) {
+				if (service.name.trim().toLowerCase() === norm) {
+					pushId(service.id)
+					break
+				}
+
+				const sub = (service.additionalServices || []).find(
+					item => item.name.trim().toLowerCase() === norm
+				)
+
+				if (sub) {
+					pushId(service.id)
+					pushId(sub.id)
+					break
 				}
 			}
 		}
-		return []
+
+		return ids
 	}
 
 	const [form, setForm] = useState({
@@ -274,7 +297,7 @@ export default function OrderForm({
 				visitTime: visitTime || null,
 			}
 
-			const res = await fetch('/api/order/client', {
+			const res = await crmFetch('/api/public/order/client', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload),

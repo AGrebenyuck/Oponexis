@@ -3,27 +3,28 @@ import FAQSection from '@/components/FAQSection'
 import GoogleReviewsSlider from '@/components/GoogleReviewsSlider'
 import Hero from '@/components/Hero'
 import HowItWorksSection from '@/components/HowItWorksSection'
-import OffersGrid from '@/components/OfferGrid'
+import OfferGrid from '@/components/OfferGrid'
 import QuickReservation from '@/components/QuickReservation'
-import TestimonialsSection from '@/components/TestimonialsSection'
 import FloatingCallButton from '@/components/ui/floatingCallButton'
+import { getServices } from '@/lib/crm'
 import { getHeroReviews } from '@/lib/googleReviewsServer'
 
+export const revalidate = 300
+
 export default async function Home() {
-	const initialReviews = await getHeroReviews()
+	const [initialReviews, initialServices] = await Promise.all([
+		getHeroReviews(),
+		getServices().catch(() => null),
+	])
 
 	return (
 		<>
 			<Hero initialReviews={initialReviews} />
 			<AvailabilityBar />
-			<OffersGrid />
-			{/* <OffersSection /> */}
+			<OfferGrid initialServices={initialServices} />
 			<HowItWorksSection />
-			<QuickReservation />
-			{/* <ServiceSection /> */}
-			{/* <ReservationSection /> */}
-			{/* <TestimonialsSection /> */}
-			<GoogleReviewsSlider />
+			<QuickReservation initialServices={initialServices} />
+			<GoogleReviewsSlider initialData={initialReviews} />
 			<FAQSection />
 			<FloatingCallButton />
 		</>

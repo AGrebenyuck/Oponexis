@@ -439,9 +439,6 @@ export const SelectOption = ({
 								)}
 								<span className='flex-1 min-w-0 flex items-center gap-2'>
 									<span className='truncate'>{sub.label}</span>
-									<span className='ml-auto text-white/85 text-sm shrink-0 whitespace-nowrap'>
-										{sub.price} zł
-									</span>
 								</span>
 							</button>
 						)

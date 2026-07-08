@@ -1,5 +1,5 @@
 // app/order/page.jsx
-import { getServices } from '@/actions/service'
+import { getServices } from '@/lib/crm'
 import OrderPageClient from './OrderPageClient'
 
 export default async function OrderPage(props) {

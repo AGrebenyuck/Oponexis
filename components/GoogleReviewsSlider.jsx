@@ -10,6 +10,7 @@ import { Navigation, Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { StarIcon } from './Icons' // твоя звезда
 import Truncating from './ui/truncating' // ← используем для длинного текста
+import { crmUrl } from '@/lib/crm'
 
 function Arrow({ dir = 'left' }) {
 	return (
@@ -36,26 +37,31 @@ function Arrow({ dir = 'left' }) {
 }
 
 export default function GoogleReviewsSlider({
-	api = '/api/google-reviews?limit=24&minRating=4',
+	api = crmUrl('/api/public/reviews?limit=24&minRating=4'),
+	initialData = null,
 }) {
 	const [data, setData] = useState({
-		rating: null,
-		total: null,
-		url: '#',
-		reviews: [],
+		rating: initialData?.rating || null,
+		total: initialData?.total || null,
+		url: initialData?.url || '#',
+		reviews: (initialData?.reviews || []).filter(
+			r => (r.text || '').trim().length > 0
+		),
 	})
 
 	useEffect(() => {
+		if (initialData) return
 		let ignore = false
 		;(async () => {
 			try {
 				const res = await fetch(api, { cache: 'no-store' })
 				const json = await res.json()
-				if (!ignore && json?.ok) {
-					const onlyText = (json.reviews || []).filter(
+				const payload = json?.data || json
+				if (!ignore && (json?.ok || json?.success) && payload) {
+					const onlyText = (payload.reviews || []).filter(
 						r => (r.text || '').trim().length > 0
 					)
-					setData({ ...json, reviews: onlyText })
+					setData({ ...payload, reviews: onlyText })
 				}
 			} catch (e) {
 				console.error('reviews load failed', e)
@@ -64,7 +70,7 @@ export default function GoogleReviewsSlider({
 		return () => {
 			ignore = true
 		}
-	}, [api])
+	}, [api, initialData])
 
 	return (
 		<section

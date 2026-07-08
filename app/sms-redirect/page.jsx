@@ -1,5 +1,6 @@
 'use client'
 
+import { crmFetch } from '@/lib/crm'
 import { getBaseUrl } from '@/lib/getBaseUrl'
 import { use, useEffect, useState } from 'react'
 
@@ -43,7 +44,19 @@ export default function SmsRedirectPage(props) {
 		)
 	}
 
-	function buildOrderUrl() {
+	function normalizeVisitTime(value) {
+		const raw = String(value || '').trim()
+		const match = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
+		if (!match) return ''
+
+		const hours = Number(match[1])
+		const minutes = Number(match[2])
+		if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return ''
+
+		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+	}
+
+	function buildOrderUrl(normalizedVisitTime) {
 		const base = getBaseUrl()
 		const url = new URL('/order', base)
 
@@ -52,7 +65,9 @@ export default function SmsRedirectPage(props) {
 		if (phone) url.searchParams.set('phone', phone)
 		if (service) url.searchParams.set('service', service)
 		if (visitDate) url.searchParams.set('visitDate', visitDate)
-		if (visitTime) url.searchParams.set('visitTime', visitTime)
+		if (normalizedVisitTime) {
+			url.searchParams.set('visitTime', normalizedVisitTime)
+		}
 
 		return url.toString()
 	}
@@ -96,9 +111,15 @@ export default function SmsRedirectPage(props) {
 			return
 		}
 
-		const orderUrl = buildOrderUrl()
+		const normalizedVisitTime = normalizeVisitTime(visitTime)
+		if (!normalizedVisitTime) {
+			setError('Podaj pełną godzinę wizyty w formacie HH:MM.')
+			return
+		}
+
+		const orderUrl = buildOrderUrl(normalizedVisitTime)
 		const dateStr = formatDateForSms()
-		const terminLine = `Termin wizyty: ${dateStr}, ${visitTime}`
+		const terminLine = `Termin wizyty: ${dateStr}, ${normalizedVisitTime}`
 
 		const smsText =
 			`Cześć${name ? ' ' + name : ''}! Tu mobilny serwis Oponexis.\n\n` +
@@ -109,7 +130,7 @@ export default function SmsRedirectPage(props) {
 
 		// 🔹 ЛОГИРУЕМ факт отправки СМС с датой визита
 		try {
-			await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/sms/track-sent`, {
+			await crmFetch('/api/public/sms/track-sent', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
@@ -119,7 +140,7 @@ export default function SmsRedirectPage(props) {
 					leadId: lead || null,
 					source: lead ? 'lead' : 'manual',
 					visitDate, // ← "YYYY-MM-DD"
-					visitTime, // ← "HH:MM"
+					visitTime: normalizedVisitTime, // ← "HH:MM"
 				}),
 			})
 		} catch (e) {
@@ -157,8 +178,9 @@ export default function SmsRedirectPage(props) {
 						</label>
 						<input
 							type='time'
+							step='60'
 							value={visitTime}
-							onChange={e => setVisitTime(e.target.value)}
+							onChange={e => setVisitTime(normalizeVisitTime(e.target.value) || e.target.value)}
 							className='w-full rounded-lg bg-slate-900 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-orange-400'
 						/>
 					</div>

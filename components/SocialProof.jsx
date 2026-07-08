@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StarIcon } from './Icons'
 import ReviewCardHero from './ReviewCardHero'
 
-const API = '/api/google-reviews?limit=24&minRating=4'
+const API = `${process.env.NEXT_PUBLIC_CRM_API_URL}/api/public/reviews?limit=24&minRating=4`
 const SS_KEY = 'gp_reviews_v1'
 const SS_TTL_MS = 30 * 60 * 1000 // 30 мин кэш на клиенте
 
@@ -32,39 +32,34 @@ function writeSessionCache(data) {
 function useGoogleReviews(initialData = null) {
 	const [data, setData] = useState(() => initialData || null)
 
-	// 1) если SSR нет — пробуем sessionStorage
 	useEffect(() => {
 		if (data) return
 		const cached = typeof window !== 'undefined' ? readSessionCache() : null
 		if (cached) setData(cached)
 	}, [data])
 
-	// 2) фоновая актуализация
 	useEffect(() => {
+		if (data) return
+		if (!API || API.includes('undefined')) return
+
 		let cancel = false
+
 		;(async () => {
 			try {
 				const res = await fetch(API, { cache: 'no-store' })
 				const json = await res.json()
-				if (!cancel && json?.ok) {
-					const onlyText = (json.reviews || []).filter(
-						r => (r.text || '').trim().length > 0
-					)
-					const normalized = {
-						rating: json.rating ?? null,
-						total: json.total ?? null,
-						url: json.url ?? '#',
-						reviews: onlyText,
-					}
-					setData(prev => prev || normalized) // если SSR уже показан — не дёргаем перерисовку без нужды
-					writeSessionCache(normalized)
+
+				if (!cancel && json?.success && json?.data) {
+					setData(prev => prev || json.data)
+					writeSessionCache(json.data)
 				}
 			} catch {}
 		})()
+
 		return () => {
 			cancel = true
 		}
-	}, [])
+	}, [data])
 
 	return data
 }
@@ -168,6 +163,35 @@ export default function SocialProof({
 	const url = data?.url ?? '#'
 	const reviews = Array.isArray(data?.reviews) ? data.reviews : []
 
+	/* панель с карточками; пауза при наведении */
+	const [idx, setIdx] = useState(0)
+	const intervalRef = useRef(null)
+
+	const start = useCallback(() => {
+		if (intervalRef.current) clearInterval(intervalRef.current)
+		intervalRef.current = setInterval(() => {
+			setIdx(i => (reviews.length ? (i + 1) % reviews.length : 0))
+		}, 6000)
+	}, [reviews.length])
+
+	const stop = useCallback(() => {
+		if (intervalRef.current) {
+			clearInterval(intervalRef.current)
+			intervalRef.current = null
+		}
+	}, [])
+
+	useEffect(() => {
+		if (variant !== 'panel' || !reviews.length) return
+		start()
+		return () => stop()
+	}, [reviews.length, start, stop, variant])
+
+	const next = useMemo(
+		() => (reviews.length ? (idx + 1) % reviews.length : 0),
+		[idx, reviews.length]
+	)
+
 	/* только бейдж (моб) */
 	if (variant === 'badge') {
 		return (
@@ -194,35 +218,6 @@ export default function SocialProof({
 			</div>
 		)
 	}
-
-	/* панель с карточками; пауза при наведении */
-	const [idx, setIdx] = useState(0)
-	const intervalRef = useRef(null)
-
-	const start = useCallback(() => {
-		if (intervalRef.current) clearInterval(intervalRef.current)
-		intervalRef.current = setInterval(() => {
-			setIdx(i => (reviews.length ? (i + 1) % reviews.length : 0))
-		}, 6000)
-	}, [reviews.length])
-
-	const stop = useCallback(() => {
-		if (intervalRef.current) {
-			clearInterval(intervalRef.current)
-			intervalRef.current = null
-		}
-	}, [])
-
-	useEffect(() => {
-		if (!reviews.length) return
-		start()
-		return () => stop()
-	}, [reviews.length, start, stop])
-
-	const next = useMemo(
-		() => (reviews.length ? (idx + 1) % reviews.length : 0),
-		[idx, reviews.length]
-	)
 
 	const map = r => ({
 		id: r.id,

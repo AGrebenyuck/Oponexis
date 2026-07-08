@@ -1,6 +1,7 @@
 'use client'
 
 import OrderForm from '@/components/OrderForm'
+import { crmFetch } from '@/lib/crm'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -17,6 +18,12 @@ export default function OrderPageClient({ params, services }) {
 
 	const [success, setSuccess] = useState(false)
 	const [alreadySubmitted, setAlreadySubmitted] = useState(false)
+	const [fallbackTermin, setFallbackTermin] = useState({
+		visitDate: visitDate || '',
+		visitTime: visitTime || '',
+	})
+	const effectiveVisitDate = visitDate || fallbackTermin.visitDate || ''
+	const effectiveVisitTime = visitTime || fallbackTermin.visitTime || ''
 
 	// ключ, по которому фиксируем "эта форма уже отправлена"
 	const submissionKey = useMemo(() => {
@@ -24,11 +31,40 @@ export default function OrderPageClient({ params, services }) {
 			lead ||
 			[
 				phone || 'no-phone',
-				visitDate || 'no-date',
-				visitTime || 'no-time',
+				effectiveVisitDate || 'no-date',
+				effectiveVisitTime || 'no-time',
 			].join('_')
 
 		return `order_submitted_${base}`
+	}, [lead, phone, effectiveVisitDate, effectiveVisitTime])
+
+	useEffect(() => {
+		if (visitDate && visitTime) return
+		if (!lead && !phone) return
+
+		let cancelled = false
+
+		async function loadFallbackTermin() {
+			try {
+				const params = new URLSearchParams()
+				if (lead) params.set('leadId', lead)
+				if (phone) params.set('phone', phone)
+				const res = await crmFetch(`/api/public/sms/latest?${params.toString()}`)
+				const json = await res.json()
+				if (cancelled || !json.ok || !json.data) return
+				setFallbackTermin({
+					visitDate: json.data.visitDate || '',
+					visitTime: json.data.visitTime || '',
+				})
+			} catch (error) {
+				console.error('[order] failed to load SMS termin fallback', error)
+			}
+		}
+
+		loadFallbackTermin()
+		return () => {
+			cancelled = true
+		}
 	}, [lead, phone, visitDate, visitTime])
 
 	// при первом заходе по ссылке — проверяем, нет ли уже отправки
@@ -52,10 +88,10 @@ export default function OrderPageClient({ params, services }) {
 
 	// текст термина для отображения
 	let terminLabel = ''
-	if (visitDate) {
-		const [y, m, d] = String(visitDate).split('-')
-		const dateStr = d && m && y ? `${d}.${m}.${y}` : visitDate
-		terminLabel = visitTime ? `${dateStr}, ${visitTime}` : dateStr
+	if (effectiveVisitDate) {
+		const [y, m, d] = String(effectiveVisitDate).split('-')
+		const dateStr = d && m && y ? `${d}.${m}.${y}` : effectiveVisitDate
+		terminLabel = effectiveVisitTime ? `${dateStr}, ${effectiveVisitTime}` : dateStr
 	}
 
 	return (
@@ -76,8 +112,9 @@ export default function OrderPageClient({ params, services }) {
 							formularza ponownie ✅
 						</p>
 						{terminLabel && (
-							<p className='text-orange-300'>
-								Termin wizyty: <strong>{terminLabel}</strong>
+							<p className='rounded-lg border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-orange-200'>
+								Termin wizyty:{' '}
+								<strong className='text-orange-100'>{terminLabel}</strong>
 							</p>
 						)}
 						<p className='text-slate-400'>
@@ -106,8 +143,9 @@ export default function OrderPageClient({ params, services }) {
 						</h1>
 
 						{terminLabel ? (
-							<p className='text-sm text-orange-300 mb-1'>
-								Termin wizyty: {terminLabel}
+							<p className='mb-3 rounded-lg border border-orange-400/40 bg-orange-500/10 px-3 py-2 text-sm text-orange-200'>
+								Termin wizyty:{' '}
+								<strong className='text-orange-100'>{terminLabel}</strong>
 							</p>
 						) : null}
 
@@ -118,8 +156,8 @@ export default function OrderPageClient({ params, services }) {
 						<OrderForm
 							initialData={initialData}
 							services={services}
-							visitDate={visitDate}
-							visitTime={visitTime}
+							visitDate={effectiveVisitDate}
+							visitTime={effectiveVisitTime}
 							onSuccess={() => setSuccess(true)}
 						/>
 					</>

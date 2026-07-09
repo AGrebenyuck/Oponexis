@@ -59,6 +59,7 @@ export default function SmsRedirectPage(props) {
 	function buildOrderUrl(normalizedVisitTime) {
 		const base = getBaseUrl()
 		const url = new URL('/order', base)
+		const [visitHour, visitMinute] = normalizedVisitTime.split(':')
 
 		if (lead) url.searchParams.set('lead', lead)
 		if (name) url.searchParams.set('name', name)
@@ -67,6 +68,8 @@ export default function SmsRedirectPage(props) {
 		if (visitDate) url.searchParams.set('visitDate', visitDate)
 		if (normalizedVisitTime) {
 			url.searchParams.set('visitTime', normalizedVisitTime)
+			url.searchParams.set('visitHour', visitHour)
+			url.searchParams.set('visitMinute', visitMinute)
 		}
 
 		return url.toString()

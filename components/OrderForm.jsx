@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
 import OrderAddressInput from './ui/OrderAddressInput'
@@ -88,9 +89,11 @@ export default function OrderForm({
 		form: '',
 		invoiceNip: '',
 		invoiceEmail: '',
+		privacy: '',
 	})
 
 	const [loading, setLoading] = useState(false)
+	const [privacyAccepted, setPrivacyAccepted] = useState(false)
 
 	function handleChange(e) {
 		const { name, value, type, checked } = e.target
@@ -211,6 +214,7 @@ export default function OrderForm({
 			form: '',
 			invoiceNip: '',
 			invoiceEmail: '',
+			privacy: '',
 		})
 
 		let hasError = false
@@ -257,6 +261,14 @@ export default function OrderForm({
 			setErrors(prev => ({
 				...prev,
 				wheelRimSize: 'Prosimy wybrać rozmiar felgi.',
+			}))
+		}
+
+		if (!privacyAccepted) {
+			hasError = true
+			setErrors(prev => ({
+				...prev,
+				privacy: 'Zaakceptuj zgodę na przetwarzanie danych.',
 			}))
 		}
 
@@ -611,6 +623,38 @@ export default function OrderForm({
 					rows={3}
 					className='w-full rounded-lg px-3 py-2 text-sm bg-slate-800/80 border border-slate-700 text-slate-100 resize-none'
 				/>
+			</div>
+
+			<div className='space-y-2 rounded-xl border border-slate-800/70 bg-slate-900/35 p-3'>
+				<label className='flex items-start gap-3 text-xs leading-relaxed text-slate-300'>
+					<input
+						type='checkbox'
+						checked={privacyAccepted}
+						onChange={event => {
+							setPrivacyAccepted(event.target.checked)
+							if (event.target.checked) {
+								setErrors(prev => ({ ...prev, privacy: '' }))
+							}
+						}}
+						className='mt-0.5 h-4 w-4 shrink-0 accent-orange-500'
+					/>
+					<span>
+						Wysyłając dane, wyrażam zgodę na przetwarzanie podanych informacji
+						w celu realizacji usługi, kontaktu i obsługi zlecenia przez
+						Oponexis. Zapoznałem/am się z{' '}
+						<Link
+							href='/privacy-policy'
+							target='_blank'
+							className='font-semibold text-orange-300 underline underline-offset-2 hover:text-orange-200'
+						>
+							polityką prywatności
+						</Link>
+						.
+					</span>
+				</label>
+				{errors.privacy && (
+					<p className='text-xs text-red-400'>{errors.privacy}</p>
+				)}
 			</div>
 
 			{errors.form && <p className='text-xs text-red-400'>{errors.form}</p>}

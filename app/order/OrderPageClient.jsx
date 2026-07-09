@@ -2,59 +2,129 @@
 
 import OrderForm from '@/components/OrderForm'
 import { crmFetch } from '@/lib/crm'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+
+function normalizeVisitTime(value) {
+	const raw = String(value || '').trim()
+	if (!raw) return ''
+
+	const decoded = raw.includes('%') ? decodeURIComponent(raw) : raw
+	const exact = decoded.match(/^(\d{1,2})[:.](\d{2})(?::\d{2})?$/)
+	if (exact) {
+		const hours = Number(exact[1])
+		const minutes = Number(exact[2])
+		if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+			return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+		}
+	}
+
+	const compact = decoded.match(/^(\d{1,2})(\d{2})$/)
+	if (compact) {
+		const hours = Number(compact[1])
+		const minutes = Number(compact[2])
+		if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+			return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+		}
+	}
+
+	return ''
+}
+
+function normalizeTimePart(value, min, max) {
+	const digits = String(value || '').replace(/\D/g, '')
+	if (!digits) return ''
+
+	const number = Number(digits)
+	return Number.isInteger(number) && number >= min && number <= max
+		? String(number).padStart(2, '0')
+		: ''
+}
+
+function normalizeVisitTimeFromParts(hour, minute) {
+	const normalizedHour = normalizeTimePart(hour, 0, 23)
+	const normalizedMinute = normalizeTimePart(minute, 0, 59)
+
+	return normalizedHour && normalizedMinute
+		? `${normalizedHour}:${normalizedMinute}`
+		: ''
+}
 
 export default function OrderPageClient({ params, services }) {
 	const router = useRouter()
-	const { lead, name, phone, service, visitDate, visitTime } = params || {}
+	const browserParams = useSearchParams()
+	const getParam = name => browserParams.get(name) || params?.[name] || ''
+	const {
+		lead,
+		name,
+		phone,
+		service,
+		visitDate,
+		visitTime,
+		visitHour,
+		visitMinute,
+	} = params || {}
+	const currentLead = getParam('lead') || lead || ''
+	const currentName = getParam('name') || name || ''
+	const currentPhone = getParam('phone') || phone || ''
+	const currentService = getParam('service') || service || ''
+	const currentVisitDate = getParam('visitDate') || visitDate || ''
+	const currentVisitTime = getParam('visitTime') || visitTime || ''
+	const currentVisitHour = getParam('visitHour') || visitHour || ''
+	const currentVisitMinute = getParam('visitMinute') || visitMinute || ''
+	const visitTimeFromParts = normalizeVisitTimeFromParts(
+		currentVisitHour,
+		currentVisitMinute
+	)
+	const queryVisitTime = normalizeVisitTime(currentVisitTime) || visitTimeFromParts
 
 	const initialData = {
-		leadId: lead || null,
-		name: name || '',
-		phone: phone || '',
-		service: service || '',
+		leadId: currentLead || null,
+		name: currentName || '',
+		phone: currentPhone || '',
+		service: currentService || '',
 	}
 
 	const [success, setSuccess] = useState(false)
 	const [alreadySubmitted, setAlreadySubmitted] = useState(false)
 	const [fallbackTermin, setFallbackTermin] = useState({
-		visitDate: visitDate || '',
-		visitTime: visitTime || '',
+		visitDate: currentVisitDate || '',
+		visitTime: queryVisitTime || '',
 	})
-	const effectiveVisitDate = visitDate || fallbackTermin.visitDate || ''
-	const effectiveVisitTime = visitTime || fallbackTermin.visitTime || ''
+	const effectiveVisitDate = currentVisitDate || fallbackTermin.visitDate || ''
+	const effectiveVisitTime =
+		queryVisitTime || normalizeVisitTime(fallbackTermin.visitTime) || ''
 
 	// ключ, по которому фиксируем "эта форма уже отправлена"
 	const submissionKey = useMemo(() => {
 		const base =
-			lead ||
+			currentLead ||
 			[
-				phone || 'no-phone',
+				currentPhone || 'no-phone',
 				effectiveVisitDate || 'no-date',
 				effectiveVisitTime || 'no-time',
 			].join('_')
 
 		return `order_submitted_${base}`
-	}, [lead, phone, effectiveVisitDate, effectiveVisitTime])
+	}, [currentLead, currentPhone, effectiveVisitDate, effectiveVisitTime])
 
 	useEffect(() => {
-		if (visitDate && visitTime) return
-		if (!lead && !phone) return
+		if (currentVisitDate && queryVisitTime) return
+		if (!currentLead && !currentPhone) return
 
 		let cancelled = false
 
 		async function loadFallbackTermin() {
 			try {
 				const params = new URLSearchParams()
-				if (lead) params.set('leadId', lead)
-				if (phone) params.set('phone', phone)
+				if (currentLead) params.set('leadId', currentLead)
+				if (currentPhone) params.set('phone', currentPhone)
 				const res = await crmFetch(`/api/public/sms/latest?${params.toString()}`)
 				const json = await res.json()
 				if (cancelled || !json.ok || !json.data) return
 				setFallbackTermin({
 					visitDate: json.data.visitDate || '',
-					visitTime: json.data.visitTime || '',
+					visitTime: normalizeVisitTime(json.data.visitTime) || '',
 				})
 			} catch (error) {
 				console.error('[order] failed to load SMS termin fallback', error)
@@ -65,7 +135,7 @@ export default function OrderPageClient({ params, services }) {
 		return () => {
 			cancelled = true
 		}
-	}, [lead, phone, visitDate, visitTime])
+	}, [currentLead, currentPhone, currentVisitDate, queryVisitTime])
 
 	// при первом заходе по ссылке — проверяем, нет ли уже отправки
 	useEffect(() => {

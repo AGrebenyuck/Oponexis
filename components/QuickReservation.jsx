@@ -6,6 +6,7 @@ import Modal from '@/components/ui/modal'
 import Result from '@/components/ui/result'
 import { crmFetch, getServices } from '@/lib/crm'
 import { gtmPush } from '@/lib/gtm'
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
 
@@ -149,6 +150,8 @@ export default function QuickReservation({
 	const [nameErr, setNameErr] = useState(null)
 	const [phoneErr, setPhoneErr] = useState(null)
 	const [serviceErr, setServiceErr] = useState(null)
+	const [privacyAccepted, setPrivacyAccepted] = useState(false)
+	const [privacyErr, setPrivacyErr] = useState(null)
 
 	// refs
 	const nameRef = useRef(null)
@@ -308,6 +311,7 @@ export default function QuickReservation({
 		setPhone('')
 		setServiceIds([])
 		setPackageInterest('')
+		setPrivacyAccepted(false)
 
 		setTouchedName(false)
 		setTouchedPhone(false)
@@ -315,6 +319,7 @@ export default function QuickReservation({
 		setNameErr(null)
 		setPhoneErr(null)
 		setServiceErr(null)
+		setPrivacyErr(null)
 
 		try {
 			const prev = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
@@ -349,12 +354,16 @@ export default function QuickReservation({
 		const _serviceErr = primaryServiceId
 			? null
 			: 'Wybierz co najmniej jedną usługę'
+		const _privacyErr = privacyAccepted
+			? null
+			: 'Zaakceptuj zgodę na przetwarzanie danych.'
 
 		setNameErr(_nameErr)
 		setPhoneErr(_phoneErr)
 		setServiceErr(_serviceErr)
+		setPrivacyErr(_privacyErr)
 
-		if (_nameErr || _phoneErr || _serviceErr || sending) {
+		if (_nameErr || _phoneErr || _serviceErr || _privacyErr || sending) {
 			if (_nameErr && nameRef.current) nameRef.current.focus()
 			else if (_phoneErr && phoneRef.current) phoneRef.current.focus()
 			return
@@ -568,6 +577,35 @@ export default function QuickReservation({
 					>
 						{sending ? 'Wysyłanie…' : 'Wyślij zgłoszenie'}
 					</Button>
+				</div>
+
+				<div className='sm:col-span-2 lg:col-span-4'>
+					<label className='flex items-start gap-3 rounded-2xl border border-white/15 bg-white/5 px-3 py-3 text-xs leading-relaxed text-white/75'>
+						<input
+							type='checkbox'
+							checked={privacyAccepted}
+							onChange={event => {
+								setPrivacyAccepted(event.target.checked)
+								if (event.target.checked) setPrivacyErr(null)
+							}}
+							className='mt-0.5 h-4 w-4 shrink-0 accent-secondary-orange'
+						/>
+						<span>
+							Wysyłając zgłoszenie, wyrażam zgodę na przetwarzanie moich
+							danych osobowych w celu kontaktu i obsługi zgłoszenia przez
+							Oponexis. Zapoznałem/am się z{' '}
+							<Link
+								href='/privacy-policy'
+								className='font-semibold text-white underline underline-offset-2'
+							>
+								polityką prywatności
+							</Link>
+							.
+						</span>
+					</label>
+					{privacyErr ? (
+						<p className='mt-1 text-xs text-red-300'>{privacyErr}</p>
+					) : null}
 				</div>
 			</form>
 

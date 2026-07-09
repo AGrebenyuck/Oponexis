@@ -38,18 +38,20 @@ const PrivacyPolicy = () => {
 				<li>
 					Dane osobowe wykorzystywane są w celu:
 					<ul className='list-disc list-inside ml-4'>
-						<li>rejestracji konta i weryfikacji tożsamości Użytkownika,</li>
-						<li>umożliwienia logowania do Serwisu,</li>
-						<li>realizacji umowy dotyczącej usług i e-usług,</li>
+						<li>przyjęcia i obsługi zgłoszenia lub rezerwacji usługi,</li>
 						<li>
-							komunikacji z Użytkownikiem (livechat, formularz kontaktowy itp.),
+							kontaktu telefonicznego albo SMS w sprawie terminu i szczegółów
+							zlecenia,
 						</li>
-						<li>wysyłki newslettera (po wyrażeniu zgody),</li>
-						<li>prowadzenia systemu komentarzy,</li>
-						<li>świadczenia usług społecznościowych,</li>
+						<li>
+							realizacji mobilnych usług wulkanizacyjnych pod wskazanym
+							adresem,
+						</li>
+						<li>
+							przygotowania wizyty, w tym doboru sprzętu do auta, felg i opon,
+						</li>
+						<li>wystawienia faktury lub rachunku, jeśli Użytkownik o to poprosi,</li>
 						<li>promocji oferty Administratora,</li>
-						<li>marketingu, remarketingu, afiliacji,</li>
-						<li>personalizacji Serwisu,</li>
 						<li>działań analitycznych i statystycznych,</li>
 						<li>windykacji należności,</li>
 						<li>ustalenia i dochodzenia roszczeń albo obrony przed nimi.</li>
@@ -65,9 +67,10 @@ const PrivacyPolicy = () => {
 				IV. Rodzaj przetwarzanych danych osobowych
 			</h2>
 			<p>
-				Administrator może przetwarzać dane osobowe Użytkownika: imię i
-				nazwisko, data urodzenia, adres zamieszkania, adres e-mail, numer
-				telefonu, NIP.
+				Administrator może przetwarzać dane podane przez Użytkownika, w
+				szczególności: imię, numer telefonu, wybraną usługę, adres wykonania
+				usługi, dane pojazdu, numer rejestracyjny, rozmiar felgi lub opony,
+				uwagi do zlecenia, a w przypadku faktury także NIP i adres e-mail.
 			</p>
 
 			<h2 className='mt-6 font-bold'>
@@ -147,7 +150,7 @@ const PrivacyPolicy = () => {
 				</li>
 			</ol>
 			<Button className={'mt-4 mx-auto'}>
-				<Link href={'/'}>Wrócić na strone</Link>
+				<Link href={'/'}>Wróć na stronę</Link>
 			</Button>
 		</div>
 	)

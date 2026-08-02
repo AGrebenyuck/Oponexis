@@ -235,7 +235,11 @@ export default function SmsRedirectPage(props) {
 		if (!preparedSms) return
 		await trackManualSms(preparedSms)
 		setSendChoiceOpen(false)
-		openSmsLink(phone, preparedSms.smsText)
+		const manualText = (automaticSmsText || preparedSms.smsText).replaceAll(
+			'{{formUrl}}',
+			preparedSms.orderUrl
+		)
+		openSmsLink(phone, manualText)
 	}
 
 	async function handleAutomaticSend() {

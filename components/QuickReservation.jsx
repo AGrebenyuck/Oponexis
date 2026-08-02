@@ -6,6 +6,7 @@ import Modal from '@/components/ui/modal'
 import Result from '@/components/ui/result'
 import { crmFetch, getServices } from '@/lib/crm'
 import { gtmPush } from '@/lib/gtm'
+import { getFirstTouch } from '@/lib/attribution'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
@@ -427,6 +428,7 @@ export default function QuickReservation({
 					selectedServiceNames: finalSelectedServiceNames,
 					partnerCode: getCookie('opx_ref_code') || null,
 					visitorId: getCookie('opx_vid') || null,
+					attribution: getFirstTouch(),
 				}),
 			})
 			clearTimeout(t)

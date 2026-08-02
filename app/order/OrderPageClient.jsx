@@ -2,6 +2,7 @@
 
 import OrderForm from '@/components/OrderForm'
 import { crmFetch } from '@/lib/crm'
+import { getFirstTouch } from '@/lib/attribution'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -59,17 +60,23 @@ export default function OrderPageClient({ params, services }) {
 		name,
 		phone,
 		service,
+		source,
 		visitDate,
 		visitTime,
 		visitHour,
 		visitMinute,
 	} = params || {}
-	const currentLead = getParam('lead') || lead || ''
-	const currentName = getParam('name') || name || ''
-	const currentPhone = getParam('phone') || phone || ''
-	const currentService = getParam('service') || service || ''
-	const currentVisitDate = getParam('visitDate') || visitDate || ''
-	const currentVisitTime = getParam('visitTime') || visitTime || ''
+	const currentToken = getParam('token')
+	const [tokenData, setTokenData] = useState(null)
+	const [tokenState, setTokenState] = useState(currentToken ? 'loading' : 'idle')
+	const [firstTouch, setFirstTouch] = useState(null)
+	const currentLead = getParam('lead') || lead || tokenData?.leadId || ''
+	const currentName = getParam('name') || name || tokenData?.name || ''
+	const currentPhone = getParam('phone') || phone || tokenData?.phone || ''
+	const currentService = getParam('service') || service || tokenData?.service || ''
+	const currentSource = getParam('source') || source || tokenData?.source || ''
+	const currentVisitDate = getParam('visitDate') || visitDate || tokenData?.visitDate || ''
+	const currentVisitTime = getParam('visitTime') || visitTime || tokenData?.visitTime || ''
 	const currentVisitHour = getParam('visitHour') || visitHour || ''
 	const currentVisitMinute = getParam('visitMinute') || visitMinute || ''
 	const visitTimeFromParts = normalizeVisitTimeFromParts(
@@ -80,9 +87,25 @@ export default function OrderPageClient({ params, services }) {
 
 	const initialData = {
 		leadId: currentLead || null,
+		smsFormLogId: currentToken ? tokenData?.id || null : null,
+		smsFormPublicToken: currentToken || null,
 		name: currentName || '',
 		phone: currentPhone || '',
 		service: currentService || '',
+		source: currentSource || (currentLead ? 'Strona internetowa' : ''),
+		attribution: currentToken ? tokenData?.attribution || null : firstTouch,
+		regNumber: tokenData?.previous?.regNumber || '',
+		color: tokenData?.previous?.color || '',
+		carModel: tokenData?.previous?.carModel || '',
+		address: tokenData?.previous?.address || '',
+		lat: tokenData?.previous?.lat ?? null,
+		lng: tokenData?.previous?.lng ?? null,
+		wheelRimSize: tokenData?.previous?.wheelRimSize || '',
+		tireSize: tokenData?.previous?.tireSize || '',
+		wantsInvoice: Boolean(tokenData?.previous?.wantsInvoice),
+		invoiceNip: tokenData?.previous?.invoiceNip || '',
+		invoiceEmail: tokenData?.previous?.invoiceEmail || '',
+		isReturningCustomer: Boolean(tokenData?.previous),
 	}
 
 	const [success, setSuccess] = useState(false)
@@ -91,6 +114,39 @@ export default function OrderPageClient({ params, services }) {
 		visitDate: currentVisitDate || '',
 		visitTime: queryVisitTime || '',
 	})
+
+	useEffect(() => {
+		if (!currentToken) setFirstTouch(getFirstTouch())
+	}, [currentToken])
+
+	useEffect(() => {
+		if (!currentToken) return
+		let cancelled = false
+		async function loadToken() {
+			try {
+				const res = await crmFetch(`/api/public/sms/latest?token=${encodeURIComponent(currentToken)}`)
+				const json = await res.json()
+				if (cancelled) return
+				if (!res.ok) {
+					setTokenState('unavailable')
+					return
+				}
+				if (!json?.data || json.expired) {
+					setTokenState(json?.expired ? 'expired' : 'invalid')
+					return
+				}
+				setTokenData(json.data)
+				setAlreadySubmitted(json.data.status === 'done')
+				setTokenState('ready')
+			} catch {
+				if (!cancelled) setTokenState('unavailable')
+			}
+		}
+		loadToken()
+		return () => {
+			cancelled = true
+		}
+	}, [currentToken])
 	const effectiveVisitDate = currentVisitDate || fallbackTermin.visitDate || ''
 	const effectiveVisitTime =
 		queryVisitTime || normalizeVisitTime(fallbackTermin.visitTime) || ''
@@ -98,6 +154,7 @@ export default function OrderPageClient({ params, services }) {
 	// ключ, по которому фиксируем "эта форма уже отправлена"
 	const submissionKey = useMemo(() => {
 		const base =
+			currentToken ||
 			currentLead ||
 			[
 				currentPhone || 'no-phone',
@@ -106,9 +163,10 @@ export default function OrderPageClient({ params, services }) {
 			].join('_')
 
 		return `order_submitted_${base}`
-	}, [currentLead, currentPhone, effectiveVisitDate, effectiveVisitTime])
+	}, [currentToken, currentLead, currentPhone, effectiveVisitDate, effectiveVisitTime])
 
 	useEffect(() => {
+		if (currentToken && tokenState !== 'ready') return
 		if (currentVisitDate && queryVisitTime) return
 		if (!currentLead && !currentPhone) return
 
@@ -135,7 +193,7 @@ export default function OrderPageClient({ params, services }) {
 		return () => {
 			cancelled = true
 		}
-	}, [currentLead, currentPhone, currentVisitDate, queryVisitTime])
+	}, [currentLead, currentPhone, currentToken, currentVisitDate, queryVisitTime, tokenState])
 
 	// при первом заходе по ссылке — проверяем, нет ли уже отправки
 	useEffect(() => {
@@ -167,7 +225,21 @@ export default function OrderPageClient({ params, services }) {
 	return (
 		<div className='min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center px-4'>
 			<div className='w-full max-w-lg bg-slate-900/80 border border-slate-700 rounded-2xl p-6 shadow-xl'>
-				{success ? (
+				{tokenState === 'loading' ? (
+					<p className='text-sm text-slate-300'>Ładowanie bezpiecznego formularza…</p>
+				) : tokenState === 'expired' ? (
+					<div className='space-y-3 text-sm'>
+						<h1 className='text-xl font-semibold'>Link wygasł</h1>
+						<p className='text-slate-300'>Minęły dwie godziny od wysłania wiadomości. Skontaktuj się z Oponexis, aby ustalić nowy termin.</p>
+					</div>
+				) : tokenState === 'invalid' ? (
+					<p className='text-sm text-red-300'>Ten link jest nieprawidłowy lub nie jest już dostępny.</p>
+				) : tokenState === 'unavailable' ? (
+					<div className='space-y-2 text-sm'>
+						<h1 className='text-xl font-semibold'>Nie udało się otworzyć formularza</h1>
+						<p className='text-slate-300'>Sprawdź połączenie z internetem i odśwież stronę. Link pozostaje ważny.</p>
+					</div>
+				) : success ? (
 					<p className='text-emerald-400 text-sm'>
 						Dziękujemy! Twoje dane zostały zapisane. Do zobaczenia wkrótce 🚗
 						<br />

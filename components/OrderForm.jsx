@@ -1,11 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
 import OrderAddressInput from './ui/OrderAddressInput'
 
 import { crmFetch } from '@/lib/crm'
+import { CUSTOMER_SOURCE_OPTIONS } from '@/lib/customerSources'
+import { canonicalSourceFromAttribution } from '@/lib/attribution'
 import { getDetailsContent } from './serviceDetails' // 🔹 подключаем хелпер
 import Popover from './ui/popover'
 
@@ -58,31 +60,36 @@ export default function OrderForm({
 
 	const [form, setForm] = useState({
 		leadId: initialData.leadId,
+		smsFormLogId: initialData.smsFormLogId || null,
+		smsFormPublicToken: initialData.smsFormPublicToken || null,
+		attribution: initialData.attribution || null,
 		name: initialData.name || '',
 		phone: initialData.phone || '',
 		serviceIds: resolveServiceIds(initialData.service),
-		regNumber: '',
-		color: '',
-		carModel: '',
-		address: '',
-		lat: null,
-		lng: null,
+		source: initialData.source || '',
+		regNumber: initialData.regNumber || '',
+		color: initialData.color || '',
+		carModel: initialData.carModel || '',
+		address: initialData.address || '',
+		lat: initialData.lat ?? null,
+		lng: initialData.lng ?? null,
 		notes: '',
 
 		// 🔹 koła / opony
-		wheelRimSize: '',
-		tireSize: '',
+		wheelRimSize: initialData.wheelRimSize || '',
+		tireSize: initialData.tireSize || '',
 
 		// 🔹 фактура
-		wantsInvoice: false,
-		invoiceNip: '',
-		invoiceEmail: '',
+		wantsInvoice: Boolean(initialData.wantsInvoice),
+		invoiceNip: initialData.invoiceNip || '',
+		invoiceEmail: initialData.invoiceEmail || '',
 	})
 
 	const [errors, setErrors] = useState({
 		name: '',
 		phone: '',
 		service: '',
+		source: '',
 		regNumber: '',
 		address: '',
 		wheelRimSize: '',
@@ -94,6 +101,22 @@ export default function OrderForm({
 
 	const [loading, setLoading] = useState(false)
 	const [privacyAccepted, setPrivacyAccepted] = useState(false)
+
+	useEffect(() => {
+		if (!initialData.attribution) return
+		setForm(previous =>
+			previous.attribution
+				? previous
+				: {
+						...previous,
+						attribution: initialData.attribution,
+						source:
+							previous.source ||
+							initialData.source ||
+							canonicalSourceFromAttribution(initialData.attribution),
+					}
+		)
+	}, [initialData.attribution, initialData.source])
 
 	function handleChange(e) {
 		const { name, value, type, checked } = e.target
@@ -192,6 +215,7 @@ export default function OrderForm({
 	}
 
 	const selectedNames = getSelectedServiceNames(form.serviceIds)
+	const isReturningCustomer = Boolean(initialData.isReturningCustomer)
 
 	// 🔹 собираем контент из хелпера для ВСЕХ выбранных услуг
 	const selectedDetails = selectedNames
@@ -208,6 +232,7 @@ export default function OrderForm({
 			name: '',
 			phone: '',
 			service: '',
+			source: '',
 			regNumber: '',
 			address: '',
 			wheelRimSize: '',
@@ -218,6 +243,13 @@ export default function OrderForm({
 		})
 
 		let hasError = false
+		if (!form.source && !form.attribution) {
+			hasError = true
+			setErrors(prev => ({
+				...prev,
+				source: 'Prosimy wybrać, skąd dowiedziałeś się o Oponexis.',
+			}))
+		}
 
 		if (!form.name.trim()) {
 			hasError = true
@@ -411,6 +443,30 @@ export default function OrderForm({
 					</div>
 				)}
 			</div>
+
+			{!isReturningCustomer ? (
+				<div className='space-y-1'>
+					<label className='text-xs text-slate-400'>
+						Skąd dowiedziałeś się o Oponexis? <span className='text-red-400'>*</span>
+					</label>
+					<select
+						name='source'
+						value={form.source}
+						onChange={handleChange}
+						className={`w-full rounded-lg px-3 py-2 text-sm bg-slate-800/80 border ${
+							errors.source ? 'border-red-500' : 'border-slate-700'
+						} text-slate-100`}
+					>
+						<option value=''>Wybierz źródło</option>
+						{CUSTOMER_SOURCE_OPTIONS.map(sourceOption => (
+							<option key={sourceOption} value={sourceOption}>
+								{sourceOption}
+							</option>
+						))}
+					</select>
+					{errors.source ? <p className='text-xs text-red-400'>{errors.source}</p> : null}
+				</div>
+			) : null}
 
 			{/* Adres */}
 			<div className='space-y-1'>

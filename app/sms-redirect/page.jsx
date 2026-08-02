@@ -16,6 +16,12 @@ export default function SmsRedirectPage(props) {
 	const [visitDate, setVisitDate] = useState('')
 	const [visitTime, setVisitTime] = useState('')
 	const [error, setError] = useState('')
+	const [sendChoiceOpen, setSendChoiceOpen] = useState(false)
+	const [preparedSms, setPreparedSms] = useState(null)
+	const [autoState, setAutoState] = useState({ status: 'idle', message: '' })
+	const [gateProfile, setGateProfile] = useState(null)
+	const [automaticSmsText, setAutomaticSmsText] = useState('')
+	const [previewState, setPreviewState] = useState({ status: 'idle', knownCustomer: null })
 
 	// по умолчанию — сегодняшняя дата + текущее время
 	useEffect(() => {
@@ -30,6 +36,60 @@ export default function SmsRedirectPage(props) {
 		const min = String(now.getMinutes()).padStart(2, '0')
 		setVisitTime(`${hh}:${min}`)
 	}, [])
+
+	useEffect(() => {
+		if (!sendChoiceOpen) return
+
+		let cancelled = false
+
+		async function loadGateProfile() {
+			try {
+				const res = await crmFetch('/api/public/sms/gate-profile', {
+					cache: 'no-store',
+				})
+				const json = await res.json()
+				if (!cancelled) setGateProfile(json?.data || null)
+			} catch (profileError) {
+				console.error('sms/gate-profile failed', profileError)
+				if (!cancelled) setGateProfile(null)
+			}
+		}
+
+		async function loadSmsPreview() {
+			if (!preparedSms) return
+			setPreviewState({ status: 'loading', knownCustomer: null })
+			try {
+				const res = await crmFetch('/api/public/sms/preview-form-link', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						phone,
+						name,
+						service,
+						leadId: lead || null,
+						visitDate: preparedSms.visitDate,
+						visitTime: preparedSms.visitTime,
+					}),
+				})
+				const json = await res.json()
+				if (!res.ok || !json?.ok) throw new Error(json?.error || 'Nie udało się przygotować podglądu SMS.')
+				if (!cancelled) {
+					setAutomaticSmsText(json.text || '')
+					setPreviewState({ status: 'ready', knownCustomer: Boolean(json.knownCustomer) })
+				}
+			} catch (previewError) {
+				console.error('sms/preview-form-link failed', previewError)
+				if (!cancelled) setPreviewState({ status: 'error', knownCustomer: null })
+			}
+		}
+
+		loadGateProfile()
+		loadSmsPreview()
+
+		return () => {
+			cancelled = true
+		}
+	}, [sendChoiceOpen, preparedSms, phone, name, service, lead])
 
 	if (!phone) {
 		return (
@@ -106,18 +166,18 @@ export default function SmsRedirectPage(props) {
 		window.location.href = href
 	}
 
-	async function handleSendSms() {
+	function prepareSms() {
 		setError('')
 
 		if (!visitDate || !visitTime) {
 			setError('Wybierz datę i godzinę wizyty.')
-			return
+			return null
 		}
 
 		const normalizedVisitTime = normalizeVisitTime(visitTime)
 		if (!normalizedVisitTime) {
 			setError('Podaj pełną godzinę wizyty w formacie HH:MM.')
-			return
+			return null
 		}
 
 		const orderUrl = buildOrderUrl(normalizedVisitTime)
@@ -131,7 +191,15 @@ export default function SmsRedirectPage(props) {
 			`(adres, kolor auta, nr rejestracyjny).\n\n` +
 			`Formularz: ${orderUrl}`
 
-		// 🔹 ЛОГИРУЕМ факт отправки СМС с датой визита
+		return {
+			orderUrl,
+			smsText,
+			visitDate,
+			visitTime: normalizedVisitTime,
+		}
+	}
+
+	async function trackManualSms(payload) {
 		try {
 			await crmFetch('/api/public/sms/track-sent', {
 				method: 'POST',
@@ -142,17 +210,78 @@ export default function SmsRedirectPage(props) {
 					service,
 					leadId: lead || null,
 					source: lead ? 'lead' : 'manual',
-					visitDate, // ← "YYYY-MM-DD"
-					visitTime: normalizedVisitTime, // ← "HH:MM"
+					visitDate: payload.visitDate,
+					visitTime: payload.visitTime,
 				}),
 			})
 		} catch (e) {
 			console.error('sms/track-sent failed', e)
-			// не ломаем UX, просто логируем
 		}
+	}
 
-		// 🔹 Открываем нативное приложение SMS
-		openSmsLink(phone, smsText)
+	function handleSendSms() {
+		const payload = prepareSms()
+		if (!payload) return
+
+		setPreparedSms(payload)
+		setAutomaticSmsText(payload.smsText)
+		setPreviewState({ status: 'idle', knownCustomer: null })
+		setAutoState({ status: 'idle', message: '' })
+		setGateProfile(null)
+		setSendChoiceOpen(true)
+	}
+
+	async function handleManualSend() {
+		if (!preparedSms) return
+		await trackManualSms(preparedSms)
+		setSendChoiceOpen(false)
+		openSmsLink(phone, preparedSms.smsText)
+	}
+
+	async function handleAutomaticSend() {
+		if (!preparedSms || autoState.status === 'sending') return
+
+		setAutoState({
+			status: 'sending',
+			message: 'Wysyłanie przez SMSGate...',
+		})
+
+		try {
+			const res = await crmFetch('/api/public/sms/send-form-link', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					phone,
+					name,
+					service,
+					leadId: lead || null,
+						visitDate: preparedSms.visitDate,
+						visitTime: preparedSms.visitTime,
+						templateKey: 'booking_form',
+						messageOverride: automaticSmsText,
+				}),
+			})
+			const json = await res.json().catch(() => null)
+
+			if (!res.ok || !json?.ok) {
+				throw new Error(json?.error || `SMSGate HTTP ${res.status}`)
+			}
+
+			const providerLine = json.providerMessageId
+				? ` ID SMSGate: ${json.providerMessageId}`
+				: ''
+			setAutoState({
+				status: 'success',
+				message: `SMS wysłany do ${json.phone || phone}.${providerLine}`,
+			})
+		} catch (sendError) {
+			setAutoState({
+				status: 'error',
+				message:
+					sendError.message ||
+					'Nie udało się wysłać SMS automatycznie przez SMSGate.',
+			})
+		}
 	}
 
 	return (
@@ -198,6 +327,131 @@ export default function SmsRedirectPage(props) {
 					Wyślij SMS z potwierdzeniem
 				</button>
 			</div>
+
+			{sendChoiceOpen && (
+				<div className='fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4'>
+					<div className='w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl'>
+						<div className='mb-4'>
+							<p className='text-xs font-semibold uppercase tracking-[0.18em] text-orange-300'>
+								Wysyłka SMS
+							</p>
+							<h2 className='mt-1 text-xl font-semibold text-white'>
+								Wybierz sposób wysłania
+							</h2>
+							<p className='mt-2 text-sm text-slate-300'>
+								Klient: {name || 'bez imienia'} · {phone}
+							</p>
+							<p className='text-sm text-slate-400'>
+								Termin: {visitDate} {preparedSms?.visitTime || ''}
+							</p>
+							<div className='mt-3 rounded-xl border border-slate-700 bg-slate-950/50 px-3 py-2 text-xs text-slate-300'>
+								<p>
+									Automatyczny profil:{' '}
+									<span className='font-semibold text-orange-300'>
+										{gateProfile?.profile || 'ładowanie...'}
+									</span>
+								</p>
+								{gateProfile ? (
+									<p className='mt-1 text-slate-400'>
+										{gateProfile.senderPhone
+											? `Telefon: ${gateProfile.senderPhone}`
+											: 'Telefon: nie podano w .env'}
+										{gateProfile.deviceId
+											? ` · Device: ${gateProfile.deviceId}`
+											: ''}
+										{gateProfile.simNumber
+											? ` · SIM ${gateProfile.simNumber}`
+											: ''}
+									</p>
+								) : null}
+							</div>
+						</div>
+
+						<div className='space-y-3'>
+							<div className='rounded-xl border border-slate-700 bg-slate-950/50 p-3'>
+							<div className='mb-2 flex items-center justify-between gap-3'>
+								<label htmlFor='automatic-sms-preview' className='text-sm font-medium text-white'>
+									Treść SMS automatycznego
+								</label>
+								<span className='text-xs text-slate-400'>
+									{previewState.status === 'loading'
+										? 'przygotowanie...'
+										: previewState.knownCustomer
+										? 'stały klient'
+										: 'nowy klient'}
+								</span>
+							</div>
+							<textarea
+								id='automatic-sms-preview'
+								value={automaticSmsText}
+								onChange={event => setAutomaticSmsText(event.target.value)}
+								disabled={autoState.status === 'sending'}
+								rows={9}
+								className='w-full resize-y rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm leading-5 text-slate-100 outline-none focus:border-orange-400 disabled:opacity-60'
+							/>
+							<p className='mt-2 text-xs text-slate-400'>
+								Przed wysłaniem zostanie wstawiony unikalny link do formularza.
+							</p>
+							</div>
+
+						<div className='grid gap-3 sm:grid-cols-2'>
+							<button
+								type='button'
+								onClick={handleManualSend}
+								disabled={autoState.status === 'sending'}
+								className='rounded-xl border border-slate-600 bg-slate-800 px-4 py-4 text-left transition hover:border-orange-300 hover:bg-slate-800/80 disabled:cursor-not-allowed disabled:opacity-60'
+							>
+								<span className='block text-base font-semibold text-white'>
+									Ręcznie
+								</span>
+								<span className='mt-1 block text-sm text-slate-400'>
+									Otwórz aplikację SMS i wyślij wiadomość jak wcześniej.
+								</span>
+							</button>
+
+							<button
+								type='button'
+								onClick={handleAutomaticSend}
+								disabled={autoState.status === 'sending' || autoState.status === 'success'}
+								className='rounded-xl border border-orange-400 bg-orange-500 px-4 py-4 text-left text-slate-950 transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-70'
+							>
+								<span className='block text-base font-semibold'>
+									Automatycznie
+								</span>
+								<span className='mt-1 block text-sm text-slate-900/80'>
+									Wyślij przez SMS Gateway z telefonu firmowego.
+								</span>
+							</button>
+						</div>
+
+						{autoState.message && (
+							<div
+								className={`mt-4 rounded-xl border px-4 py-3 text-sm ${
+									autoState.status === 'success'
+										? 'border-emerald-400/50 bg-emerald-500/10 text-emerald-100'
+										: autoState.status === 'error'
+										? 'border-red-400/50 bg-red-500/10 text-red-100'
+										: 'border-slate-600 bg-slate-800 text-slate-200'
+								}`}
+							>
+								{autoState.message}
+							</div>
+						)}
+
+						<div className='mt-5 flex justify-end gap-3'>
+							<button
+								type='button'
+								onClick={() => setSendChoiceOpen(false)}
+								disabled={autoState.status === 'sending'}
+								className='rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60'
+							>
+								Zamknij
+							</button>
+						</div>
+						</div>
+					</div>
+				</div>
+				)}
 		</div>
 	)
 }

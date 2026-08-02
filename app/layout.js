@@ -3,6 +3,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Montserrat, Nunito } from 'next/font/google'
 import Script from 'next/script'
 import ReferralInit from './_components/ReferralInit'
+import AttributionInit from './_components/AttributionInit'
 import './globals.css'
 
 const montserratRegular = Montserrat({
@@ -152,6 +153,7 @@ export default function RootLayout({ children }) {
 
 				<Analytics />
 				<SpeedInsights />
+				<AttributionInit />
 				<ReferralInit />
 			</body>
 		</html>

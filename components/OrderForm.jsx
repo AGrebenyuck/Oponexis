@@ -113,10 +113,12 @@ export default function OrderForm({
 						source:
 							previous.source ||
 							initialData.source ||
-							canonicalSourceFromAttribution(initialData.attribution),
-					}
+							(initialData.sourceKnown
+								? canonicalSourceFromAttribution(initialData.attribution)
+								: ''),
+				  }
 		)
-	}, [initialData.attribution, initialData.source])
+	}, [initialData.attribution, initialData.source, initialData.sourceKnown])
 
 	function handleChange(e) {
 		const { name, value, type, checked } = e.target
@@ -215,7 +217,7 @@ export default function OrderForm({
 	}
 
 	const selectedNames = getSelectedServiceNames(form.serviceIds)
-	const isReturningCustomer = Boolean(initialData.isReturningCustomer)
+	const shouldAskSource = !initialData.sourceKnown
 
 	// 🔹 собираем контент из хелпера для ВСЕХ выбранных услуг
 	const selectedDetails = selectedNames
@@ -243,7 +245,7 @@ export default function OrderForm({
 		})
 
 		let hasError = false
-		if (!form.source && !form.attribution) {
+		if (shouldAskSource && !form.source) {
 			hasError = true
 			setErrors(prev => ({
 				...prev,
@@ -444,7 +446,7 @@ export default function OrderForm({
 				)}
 			</div>
 
-			{!isReturningCustomer ? (
+			{shouldAskSource ? (
 				<div className='space-y-1'>
 					<label className='text-xs text-slate-400'>
 						Skąd dowiedziałeś się o Oponexis? <span className='text-red-400'>*</span>

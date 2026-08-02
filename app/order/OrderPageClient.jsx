@@ -92,7 +92,13 @@ export default function OrderPageClient({ params, services }) {
 		name: currentName || '',
 		phone: currentPhone || '',
 		service: currentService || '',
-		source: currentSource || (currentLead ? 'Strona internetowa' : ''),
+		source: currentSource || '',
+		sourceKnown: currentToken
+			? Boolean(tokenData?.sourceKnown)
+			: Boolean(
+				currentSource ||
+					(firstTouch?.source && firstTouch.source.toLowerCase() !== 'direct')
+			),
 		attribution: currentToken ? tokenData?.attribution || null : firstTouch,
 		regNumber: tokenData?.previous?.regNumber || '',
 		color: tokenData?.previous?.color || '',

@@ -72,9 +72,9 @@ export default function OrderPageClient({ params, services }) {
 	const [tokenState, setTokenState] = useState(currentToken ? 'loading' : 'idle')
 	const [firstTouch, setFirstTouch] = useState(null)
 	const currentLead = getParam('lead') || lead || tokenData?.leadId || ''
-	const currentName = getParam('name') || name || tokenData?.name || ''
+	const currentName = getParam('name') || name || tokenData?.name || lookupData?.name || ''
 	const currentPhone = getParam('phone') || phone || tokenData?.phone || ''
-	const currentService = getParam('service') || service || tokenData?.service || ''
+	const currentService = getParam('service') || service || tokenData?.service || lookupData?.service || ''
 	const currentSource = getParam('source') || source || tokenData?.source || ''
 	const currentVisitDate = getParam('visitDate') || visitDate || tokenData?.visitDate || ''
 	const currentVisitTime = getParam('visitTime') || visitTime || tokenData?.visitTime || ''

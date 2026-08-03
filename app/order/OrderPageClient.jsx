@@ -68,6 +68,7 @@ export default function OrderPageClient({ params, services }) {
 	} = params || {}
 	const currentToken = getParam('token')
 	const [tokenData, setTokenData] = useState(null)
+	const [lookupData, setLookupData] = useState(null)
 	const [tokenState, setTokenState] = useState(currentToken ? 'loading' : 'idle')
 	const [firstTouch, setFirstTouch] = useState(null)
 	const currentLead = getParam('lead') || lead || tokenData?.leadId || ''
@@ -85,6 +86,7 @@ export default function OrderPageClient({ params, services }) {
 	)
 	const queryVisitTime = normalizeVisitTime(currentVisitTime) || visitTimeFromParts
 
+	const savedData = tokenData || lookupData
 	const initialData = {
 		leadId: currentLead || null,
 		smsFormLogId: currentToken ? tokenData?.id || null : null,
@@ -97,21 +99,22 @@ export default function OrderPageClient({ params, services }) {
 			? Boolean(tokenData?.sourceKnown)
 			: Boolean(
 				currentSource ||
+				lookupData?.sourceKnown ||
 					(firstTouch?.source && firstTouch.source.toLowerCase() !== 'direct')
 			),
-		attribution: currentToken ? tokenData?.attribution || null : firstTouch,
-		regNumber: tokenData?.previous?.regNumber || '',
-		color: tokenData?.previous?.color || '',
-		carModel: tokenData?.previous?.carModel || '',
-		address: tokenData?.previous?.address || '',
-		lat: tokenData?.previous?.lat ?? null,
-		lng: tokenData?.previous?.lng ?? null,
-		wheelRimSize: tokenData?.previous?.wheelRimSize || '',
-		tireSize: tokenData?.previous?.tireSize || '',
-		wantsInvoice: Boolean(tokenData?.previous?.wantsInvoice),
-		invoiceNip: tokenData?.previous?.invoiceNip || '',
-		invoiceEmail: tokenData?.previous?.invoiceEmail || '',
-		isReturningCustomer: Boolean(tokenData?.previous),
+		attribution: currentToken ? tokenData?.attribution || null : lookupData?.attribution || firstTouch,
+		regNumber: savedData?.previous?.regNumber || '',
+		color: savedData?.previous?.color || '',
+		carModel: savedData?.previous?.carModel || '',
+		address: savedData?.previous?.address || '',
+		lat: savedData?.previous?.lat ?? null,
+		lng: savedData?.previous?.lng ?? null,
+		wheelRimSize: savedData?.previous?.wheelRimSize || '',
+		tireSize: savedData?.previous?.tireSize || '',
+		wantsInvoice: Boolean(savedData?.previous?.wantsInvoice),
+		invoiceNip: savedData?.previous?.invoiceNip || '',
+		invoiceEmail: savedData?.previous?.invoiceEmail || '',
+		isReturningCustomer: Boolean(savedData?.previous),
 	}
 
 	const [success, setSuccess] = useState(false)
@@ -173,7 +176,6 @@ export default function OrderPageClient({ params, services }) {
 
 	useEffect(() => {
 		if (currentToken && tokenState !== 'ready') return
-		if (currentVisitDate && queryVisitTime) return
 		if (!currentLead && !currentPhone) return
 
 		let cancelled = false
@@ -186,6 +188,7 @@ export default function OrderPageClient({ params, services }) {
 				const res = await crmFetch(`/api/public/sms/latest?${params.toString()}`)
 				const json = await res.json()
 				if (cancelled || !json.ok || !json.data) return
+				setLookupData(json.data)
 				setFallbackTermin({
 					visitDate: json.data.visitDate || '',
 					visitTime: normalizeVisitTime(json.data.visitTime) || '',
@@ -302,6 +305,7 @@ export default function OrderPageClient({ params, services }) {
 						</p>
 
 						<OrderForm
+							key={`order-${currentToken || lookupData?.id || 'manual'}-${lookupData?.previous ? 'known' : 'new'}`}
 							initialData={initialData}
 							services={services}
 							visitDate={effectiveVisitDate}

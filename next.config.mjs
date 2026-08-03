@@ -9,6 +9,7 @@ const nextConfig = {
 	experimental: {
 		optimizePackageImports: ['lucide-react', '@ant-design/icons'],
 	},
+	allowedDevOrigins: ['10.168.210.219'],
 	async rewrites() {
 		const crmApiUrl = (process.env.CRM_API_URL || 'http://127.0.0.1:3000').replace(/\/$/, '')
 		return [

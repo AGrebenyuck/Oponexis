@@ -115,6 +115,10 @@ export default function OrderPageClient({ params, services }) {
 		invoiceNip: savedData?.previous?.invoiceNip || '',
 		invoiceEmail: savedData?.previous?.invoiceEmail || '',
 		isReturningCustomer: Boolean(savedData?.previous),
+		consents: tokenData?.consents || lookupData?.consents || {
+			privacyAccepted: false,
+			marketingSmsAccepted: false,
+		},
 	}
 
 	const [success, setSuccess] = useState(false)

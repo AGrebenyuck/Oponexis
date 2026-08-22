@@ -101,6 +101,9 @@ export default function OrderForm({
 
 	const [loading, setLoading] = useState(false)
 	const [privacyAccepted, setPrivacyAccepted] = useState(false)
+	const [marketingSmsAccepted, setMarketingSmsAccepted] = useState(false)
+	const needsPrivacyConsent = !initialData?.consents?.privacyAccepted
+	const needsMarketingSmsConsent = !initialData?.consents?.marketingSmsAccepted
 
 	useEffect(() => {
 		if (!initialData.attribution) return
@@ -298,7 +301,7 @@ export default function OrderForm({
 			}))
 		}
 
-		if (!privacyAccepted) {
+		if (needsPrivacyConsent && !privacyAccepted) {
 			hasError = true
 			setErrors(prev => ({
 				...prev,
@@ -341,6 +344,8 @@ export default function OrderForm({
 				service: serviceName || null,
 				visitDate: visitDate || null,
 				visitTime: visitTime || null,
+				privacyAccepted: needsPrivacyConsent ? privacyAccepted : false,
+				marketingSmsAccepted: needsMarketingSmsConsent ? marketingSmsAccepted : false,
 			}
 
 			const res = await crmFetch('/api/public/order/client', {
@@ -683,8 +688,25 @@ export default function OrderForm({
 				/>
 			</div>
 
-			<div className='space-y-2 rounded-xl border border-slate-800/70 bg-slate-900/35 p-3'>
-				<label className='flex items-start gap-3 text-xs leading-relaxed text-slate-300'>
+			{(needsPrivacyConsent || needsMarketingSmsConsent) ? <div className='space-y-3 rounded-xl border border-slate-800/70 bg-slate-900/35 p-3 text-xs leading-relaxed text-slate-300'>
+				{needsPrivacyConsent && needsMarketingSmsConsent ? <>
+					<label className='flex items-start gap-3 font-semibold text-slate-100'>
+						<input
+							type='checkbox'
+							checked={privacyAccepted && marketingSmsAccepted}
+							onChange={event => {
+								setPrivacyAccepted(event.target.checked)
+								setMarketingSmsAccepted(event.target.checked)
+								if (event.target.checked) setErrors(prev => ({ ...prev, privacy: '' }))
+							}}
+							className='mt-0.5 h-4 w-4 shrink-0 accent-orange-500'
+						/>
+						<span>Potwierdzam wszystko</span>
+					</label>
+					<div className='border-t border-slate-800' />
+				</> : null}
+				{needsPrivacyConsent ? <>
+				<label className='flex items-start gap-3'>
 					<input
 						type='checkbox'
 						checked={privacyAccepted}
@@ -697,15 +719,13 @@ export default function OrderForm({
 						className='mt-0.5 h-4 w-4 shrink-0 accent-orange-500'
 					/>
 					<span>
-						Wysyłając dane, wyrażam zgodę na przetwarzanie podanych informacji
-						w celu realizacji usługi, kontaktu i obsługi zlecenia przez
-						Oponexis. Zapoznałem/am się z{' '}
+						Wysyłając formularz, wyrażam zgodę na przetwarzanie moich danych osobowych w celu kontaktu i obsługi zgłoszenia przez Oponexis oraz potwierdzam, że zapoznałem/am się z{' '}
 						<Link
 							href='/privacy-policy'
 							target='_blank'
 							className='font-semibold text-orange-300 underline underline-offset-2 hover:text-orange-200'
 						>
-							polityką prywatności
+						Polityką prywatności
 						</Link>
 						.
 					</span>
@@ -713,7 +733,23 @@ export default function OrderForm({
 				{errors.privacy && (
 					<p className='text-xs text-red-400'>{errors.privacy}</p>
 				)}
-			</div>
+				</> : null}
+
+				{needsMarketingSmsConsent ? <label className='flex items-start gap-3'>
+				<input
+					type='checkbox'
+					checked={marketingSmsAccepted}
+					onChange={event => setMarketingSmsAccepted(event.target.checked)}
+					className='mt-0.5 h-4 w-4 shrink-0 accent-orange-500'
+				/>
+				<span>
+					Chcę otrzymywać od Oponexis SMS-y z ofertami i przypomnieniami sezonowymi. Zgodę mogę wycofać w każdej chwili.{' '}
+					<Link href='/marketing-sms' target='_blank' className='font-semibold text-orange-300 underline underline-offset-2 hover:text-orange-200'>
+						Dowiedz się więcej
+					</Link>.
+				</span>
+				</label> : null}
+			</div> : null}
 
 			{errors.form && <p className='text-xs text-red-400'>{errors.form}</p>}
 

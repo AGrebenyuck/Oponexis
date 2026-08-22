@@ -152,6 +152,7 @@ export default function QuickReservation({
 	const [phoneErr, setPhoneErr] = useState(null)
 	const [serviceErr, setServiceErr] = useState(null)
 	const [privacyAccepted, setPrivacyAccepted] = useState(false)
+	const [marketingSmsAccepted, setMarketingSmsAccepted] = useState(false)
 	const [privacyErr, setPrivacyErr] = useState(null)
 
 	// refs
@@ -429,6 +430,8 @@ export default function QuickReservation({
 					partnerCode: getCookie('opx_ref_code') || null,
 					visitorId: getCookie('opx_vid') || null,
 					attribution: getFirstTouch(),
+					privacyAccepted,
+					marketingSmsAccepted,
 				}),
 			})
 			clearTimeout(t)
@@ -581,8 +584,22 @@ export default function QuickReservation({
 					</Button>
 				</div>
 
-				<div className='sm:col-span-2 lg:col-span-4'>
-					<label className='flex items-start gap-3 rounded-2xl border border-white/15 bg-white/5 px-3 py-3 text-xs leading-relaxed text-white/75'>
+				<div className='sm:col-span-2 lg:col-span-4 space-y-3 rounded-2xl border border-white/15 bg-white/5 p-3 text-xs leading-relaxed text-white/75'>
+					<label className='flex items-start gap-3 font-semibold text-white'>
+						<input
+							type='checkbox'
+							checked={privacyAccepted && marketingSmsAccepted}
+							onChange={event => {
+								setPrivacyAccepted(event.target.checked)
+								setMarketingSmsAccepted(event.target.checked)
+								if (event.target.checked) setPrivacyErr(null)
+							}}
+							className='mt-0.5 h-4 w-4 shrink-0 accent-secondary-orange'
+						/>
+						<span>Potwierdzam wszystko</span>
+					</label>
+					<div className='border-t border-white/10' />
+					<label className='flex items-start gap-3'>
 						<input
 							type='checkbox'
 							checked={privacyAccepted}
@@ -593,17 +610,31 @@ export default function QuickReservation({
 							className='mt-0.5 h-4 w-4 shrink-0 accent-secondary-orange'
 						/>
 						<span>
-							Wysyłając zgłoszenie, wyrażam zgodę na przetwarzanie moich
-							danych osobowych w celu kontaktu i obsługi zgłoszenia przez
-							Oponexis. Zapoznałem/am się z{' '}
+							Wysyłając zgłoszenie, wyrażam zgodę na przetwarzanie moich danych osobowych w celu kontaktu i obsługi zgłoszenia przez Oponexis oraz potwierdzam, że zapoznałem/am się z{' '}
 							<Link
 								href='/privacy-policy'
 								className='font-semibold text-white underline underline-offset-2'
 							>
-								polityką prywatności
+							Polityką prywatności
 							</Link>
 							.
 						</span>
+					</label>
+					<label className='flex items-start gap-3'>
+					<input
+						type='checkbox'
+						checked={marketingSmsAccepted}
+						onChange={event => setMarketingSmsAccepted(event.target.checked)}
+						className='mt-0.5 h-4 w-4 shrink-0 accent-secondary-orange'
+					/>
+					<span>
+						Chcę otrzymywać od Oponexis SMS-y z ofertami i przypomnieniami
+						sezonowymi. Zgodę mogę wycofać w każdej chwili.{' '}
+						<Link href='/marketing-sms' className='font-semibold text-white underline underline-offset-2'>
+							Dowiedz się więcej
+						</Link>
+						.
+					</span>
 					</label>
 					{privacyErr ? (
 						<p className='mt-1 text-xs text-red-300'>{privacyErr}</p>

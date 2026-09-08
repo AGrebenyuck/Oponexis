@@ -2,8 +2,8 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Montserrat, Nunito } from 'next/font/google'
 import Script from 'next/script'
-import ReferralInit from './_components/ReferralInit'
 import AttributionInit from './_components/AttributionInit'
+import ReferralInit from './_components/ReferralInit'
 import './globals.css'
 
 const montserratRegular = Montserrat({
@@ -124,6 +124,19 @@ export default function RootLayout({ children }) {
 			<head>
 				<link rel='icon' href='/siteIcon/favicon.ico' type='image/x-icon' />
 				<link rel='apple-touch-icon' href='/siteIcon/icon.svg'></link>
+				<Script
+					src='https://www.googletagmanager.com/gtag/js?id=AW-18438426629'
+					strategy='afterInteractive'
+				/>
+
+				<Script id='google-ads-tag' strategy='afterInteractive'>
+					{`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-18438426629');
+          `}
+				</Script>
 				{GTM_ID ? (
 					<Script id='gtm-base' strategy='afterInteractive'>
 						{`
@@ -136,6 +149,7 @@ export default function RootLayout({ children }) {
 					</Script>
 				) : null}
 			</head>
+
 			<body
 				className={`${montserratRegular.variable} ${NunitoFont.variable} antialiased text-sm sm:text-xl lg:text-2xl 3xl:text-3xl font-normal overflow-x-clip`}
 			>

@@ -1,6 +1,7 @@
 'use client'
 
 import { LINKS, SITE } from '@/lib/site'
+import { trackEvent } from '@/lib/gtm'
 import Image from 'next/image'
 import { memo } from 'react'
 import { PhoneIcon } from './Icons'
@@ -89,6 +90,7 @@ const Hero = memo(({ initialReviews = null }) => {
 								</button>
 								<a
 									href={LINKS.PHONE_TEL}
+									onClick={() => trackEvent('click_to_call', { call_source: 'hero' })}
 									className='w-full md:w-auto md:flex-1 min-w-[260px] h-[54px] inline-flex items-center justify-center text-lg md:text-xl font-medium whitespace-nowrap fill-white hover:fill-accent-blue rounded-xl lg:rounded-3xl px-6 md:px-8 text-white border border-white/80 hover:bg-white hover:text-primary-blue transition'
 								>
 									<PhoneIcon className='w-4 h-4 md:w-5 md:h-5 mr-2 fill-inherit' />

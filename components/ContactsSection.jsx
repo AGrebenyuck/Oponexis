@@ -1,4 +1,7 @@
+'use client'
+
 import { LINKS, SITE } from '@/lib/site'
+import { trackEvent } from '@/lib/gtm'
 import Image from 'next/image'
 import Link from 'next/link'
 import { memo } from 'react'
@@ -109,7 +112,10 @@ const ContactsSection = memo(() => {
 								</Link>
 							</li>
 							<li>
-								<a href={LINKS.PHONE_TEL}>
+								<a
+									href={LINKS.PHONE_TEL}
+									onClick={() => trackEvent('click_to_call', { call_source: 'contacts' })}
+								>
 									<div className='flex gap-5 md:gap-8 lg:gap-11 items-center'>
 										<PhoneIcon className='w-[22px] h-[22px] md:w-[40px] md:h-[45px]' />
 										<div>

@@ -1,13 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import MultiServicePicker from './ui/MultiServicePicker'
 import OrderAddressInput from './ui/OrderAddressInput'
 
 import { crmFetch } from '@/lib/crm'
 import { CUSTOMER_SOURCE_OPTIONS } from '@/lib/customerSources'
 import { canonicalSourceFromAttribution } from '@/lib/attribution'
+import { trackEvent } from '@/lib/gtm'
 import { getDetailsContent } from './serviceDetails' // 🔹 подключаем хелпер
 import Popover from './ui/popover'
 
@@ -100,10 +101,17 @@ export default function OrderForm({
 	})
 
 	const [loading, setLoading] = useState(false)
+	const bookingStartedRef = useRef(false)
 	const [privacyAccepted, setPrivacyAccepted] = useState(false)
 	const [marketingSmsAccepted, setMarketingSmsAccepted] = useState(false)
 	const needsPrivacyConsent = !initialData?.consents?.privacyAccepted
 	const needsMarketingSmsConsent = !initialData?.consents?.marketingSmsAccepted
+
+	function trackBookingStart() {
+		if (bookingStartedRef.current) return
+		bookingStartedRef.current = true
+		trackEvent('booking_start', { booking_source: 'order_form' })
+	}
 
 	useEffect(() => {
 		if (!initialData.attribution) return
@@ -357,6 +365,7 @@ export default function OrderForm({
 			const json = await res.json()
 			if (!json.ok) throw new Error(json.error || 'Błąd serwera')
 
+			trackEvent('booking_complete', { booking_source: 'order_form' })
 			onSuccess?.()
 		} catch (err) {
 			console.error(err)
@@ -367,7 +376,7 @@ export default function OrderForm({
 	}
 
 	return (
-		<form onSubmit={handleSubmit} className='space-y-4 mt-4'>
+		<form onSubmit={handleSubmit} onFocus={trackBookingStart} className='space-y-4 mt-4'>
 			{/* Imię */}
 			<div className='space-y-1'>
 				<label className='text-xs text-slate-400'>

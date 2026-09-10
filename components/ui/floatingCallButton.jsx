@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
 // Если у тебя есть константы — используй их:
-import { LINKS, SITE } from '@/lib/site' // <- если нет, замени на свои
+import { LINKS } from '@/lib/site' // <- если нет, замени на свои
+import { trackEvent } from '@/lib/gtm'
 import FloatButton from './floatButton'
 
 // Простейшая иконка-трубка (можешь заменить на свою)
@@ -36,14 +37,7 @@ export default function FloatingCallButton({
 
 	// Обработчик клика
 	function callNow() {
-		try {
-			// GTM (если установлен)
-			window.dataLayer = window.dataLayer || []
-			window.dataLayer.push({
-				event: 'call_click_float',
-				phone: SITE?.PHONE_DISPLAY || null,
-			})
-		} catch {}
+		trackEvent('click_to_call', { call_source: 'floating_button' })
 		// Переход в звонилку
 		window.location.href = telHref
 	}

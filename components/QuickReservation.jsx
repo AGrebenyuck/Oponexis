@@ -5,7 +5,7 @@ import Button from '@/components/ui/button'
 import Modal from '@/components/ui/modal'
 import Result from '@/components/ui/result'
 import { crmFetch, getServices } from '@/lib/crm'
-import { gtmPush } from '@/lib/gtm'
+import { trackEvent } from '@/lib/gtm'
 import { getFirstTouch } from '@/lib/attribution'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -158,6 +158,7 @@ export default function QuickReservation({
 	// refs
 	const nameRef = useRef(null)
 	const phoneRef = useRef(null)
+	const bookingStartedRef = useRef(false)
 
 	// debounce timers
 	const nameTimer = useRef(null)
@@ -168,6 +169,12 @@ export default function QuickReservation({
 
 	// ⬇️ данные для плашек: «сегодняшние» окна
 	const [todayRanges, setTodayRanges] = useState([])
+
+	function trackBookingStart() {
+		if (bookingStartedRef.current) return
+		bookingStartedRef.current = true
+		trackEvent('booking_start', { booking_source: 'quick_reservation' })
+	}
 
 	/* ── загрузка прайса ── */
 	useEffect(() => {
@@ -378,11 +385,7 @@ export default function QuickReservation({
 			navigator &&
 			navigator.onLine === false
 		) {
-			gtmPush({
-				event: 'lead_error',
-				lead_source: 'quick_form',
-				error_message: 'offline',
-			})
+			trackEvent('lead_error', { error_type: 'offline' })
 			setStatus('error')
 			setMessage(
 				'Brak połączenia z internetem. Sprawdź sieć i spróbuj ponownie.'
@@ -391,8 +394,6 @@ export default function QuickReservation({
 			setSending(false)
 			return
 		}
-
-		gtmPush({ event: 'send_form', lead_source: 'quick_form' })
 
 		const idToName = new Map(services.map(s => [String(s.id), s.name]))
 		services.forEach(s =>
@@ -451,7 +452,7 @@ export default function QuickReservation({
 			setOpen(true)
 			resetForm()
 
-			gtmPush({ event: 'lead_success', lead_source: 'quick_form' })
+			trackEvent('generate_lead', { lead_source: 'website_form' })
 		} catch (err) {
 			clearTimeout(t)
 			console.error('lead submit failed:', err)
@@ -466,11 +467,7 @@ export default function QuickReservation({
 					: 'Nie udało się wysłać zgłoszenia. Spróbuj ponownie.'
 			setMessage(msg)
 			setOpen(true)
-			gtmPush({
-				event: 'lead_error',
-				lead_source: 'quick_form',
-				error_message: String(err?.message || err),
-			})
+			trackEvent('lead_error', { error_type: 'request_failed' })
 		} finally {
 			setSending(false)
 		}
@@ -492,6 +489,7 @@ export default function QuickReservation({
 
 			<form
 				onSubmit={submitLead}
+				onFocus={trackBookingStart}
 				className='
           grid gap-4 sm:gap-5 lg:gap-6
           sm:grid-cols-2 lg:grid-cols-4

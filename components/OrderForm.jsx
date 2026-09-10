@@ -365,7 +365,7 @@ export default function OrderForm({
 			const json = await res.json()
 			if (!json.ok) throw new Error(json.error || 'Błąd serwera')
 
-			trackEvent('booking_complete', { booking_source: 'order_form' })
+			trackEvent('generate_lead', { lead_source: 'booking_form' })
 			onSuccess?.()
 		} catch (err) {
 			console.error(err)

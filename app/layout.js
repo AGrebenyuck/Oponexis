@@ -124,19 +124,6 @@ export default function RootLayout({ children }) {
 			<head>
 				<link rel='icon' href='/siteIcon/favicon.ico' type='image/x-icon' />
 				<link rel='apple-touch-icon' href='/siteIcon/icon.svg'></link>
-				<Script
-					src='https://www.googletagmanager.com/gtag/js?id=AW-18438426629'
-					strategy='afterInteractive'
-				/>
-
-				<Script id='google-ads-tag' strategy='afterInteractive'>
-					{`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'AW-18438426629');
-          `}
-				</Script>
 				{GTM_ID ? (
 					<Script id='gtm-base' strategy='afterInteractive'>
 						{`

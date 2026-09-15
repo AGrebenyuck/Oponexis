@@ -1,5 +1,8 @@
 import Button from '@/components/ui/button'
 import Link from 'next/link'
+import Script from 'next/script'
+
+const COOKIEBOT_CBID = 'ca5a1513-1200-4e24-815d-c0366bb45dbe'
 
 const PrivacyPolicy = () => {
 	return (
@@ -123,6 +126,13 @@ const PrivacyPolicy = () => {
 				</li>
 				<li>Użytkownik może zmieniać ustawienia cookies w przeglądarce.</li>
 			</ol>
+			<div className='mt-6'>
+				<Script
+					id='CookieDeclaration'
+					src={`https://consent.cookiebot.com/${COOKIEBOT_CBID}/cd.js`}
+					strategy='afterInteractive'
+				/>
+			</div>
 
 			<h2 className='mt-6 font-bold'>
 				IX. Zautomatyzowane podejmowanie decyzji i profilowanie

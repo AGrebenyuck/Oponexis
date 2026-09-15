@@ -125,19 +125,20 @@ export default function RootLayout({ children }) {
 			<head>
 				<link rel='icon' href='/siteIcon/favicon.ico' type='image/x-icon' />
 				<link rel='apple-touch-icon' href='/siteIcon/icon.svg'></link>
-				<Script
+				{/* Cookiebot requires its auto-blocking loader to be the first script. */}
+				{/* eslint-disable-next-line @next/next/no-sync-scripts */}
+				<script
 					id='Cookiebot'
 					src='https://consent.cookiebot.com/uc.js'
 					data-cbid={COOKIEBOT_CBID}
 					data-blockingmode='auto'
-					strategy='beforeInteractive'
+					type='text/javascript'
 				/>
-				<Script
+				<script
 					id='cookiebot-consent-default'
 					data-cookieconsent='ignore'
-					strategy='beforeInteractive'
-				>
-					{`
+					dangerouslySetInnerHTML={{
+						__html: `
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('consent', 'default', {
@@ -152,8 +153,9 @@ gtag('consent', 'default', {
 });
 gtag('set', 'ads_data_redaction', true);
 gtag('set', 'url_passthrough', false);
-`}
-				</Script>
+						`,
+					}}
+				/>
 				{GTM_ID ? (
 					<Script id='gtm-base' data-cookieconsent='ignore' strategy='afterInteractive'>
 						{`

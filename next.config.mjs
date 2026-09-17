@@ -14,7 +14,7 @@ const nextConfig = {
 		const crmApiUrl = (process.env.CRM_API_URL || 'http://127.0.0.1:3000').replace(/\/$/, '')
 		return [
 			{
-				source: '/crm-api/:path*',
+				source: '/_opx/:path*',
 				destination: `${crmApiUrl}/:path*`,
 			},
 		]

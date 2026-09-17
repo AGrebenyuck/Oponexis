@@ -640,7 +640,7 @@ export default function QuickReservation({
 				</div>
 			</form>
 
-			<Modal visible={open} onClose={() => setOpen(false)}>
+			<Modal visible={open} onClose={() => setOpen(false)} variant='confirmation' closeLabel='Gotowe'>
 				<Result
 					status={status}
 					title={status === 'success' ? 'Sukces!' : 'Błąd'}

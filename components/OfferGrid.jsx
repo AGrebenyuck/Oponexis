@@ -173,8 +173,8 @@ const RAW = [
 		alt: 'Pomoc z oponą',
 		duration: 'ok. 30-40 min',
 		summary:
-			'Awaryjny dojazd, gdy złapiesz gumę i nie chcesz od razu wzywać drogiej lawety.',
-		chips: [{ label: 'Awaryjnie' }],
+			'Masz problem z oponą? Przyjedziemy do Ciebie i, jeśli to możliwe, naprawimy ją na miejscu.',
+		chips: [{ label: 'Szybka pomoc' }],
 		priceRows: [
 			{ label: 'Naprawa opony z demontażem', price: '200 zł' },
 			{ label: 'Wymiana wentyla', price: '150 zł' },

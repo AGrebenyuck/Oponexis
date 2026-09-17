@@ -9,6 +9,7 @@ import Button from './ui/button'
 const NAV_ITEMS = [
 	{ label: 'Jak działamy', target: 'howItWorks' },
 	{ label: 'Usługi', target: 'services' },
+	{ label: 'Dla firm', href: '/dla-firm' },
 	{ label: 'Kontakt', target: 'contacts' },
 ]
 
@@ -46,7 +47,15 @@ const Header = memo(() => {
 				{isLargeScreen ? (
 					<ul className='flex gap-11 font-semibold'>
 						{NAV_ITEMS.map(item => (
-							<li key={item.target}><Link href={`#${item.target}`} onClick={event => handleClick(event, item.target)} className='transition-colors hover:text-accent-blue'>{item.label}</Link></li>
+							<li key={item.target || item.href}>
+								<Link
+									href={item.href || `#${item.target}`}
+									onClick={item.target ? event => handleClick(event, item.target) : undefined}
+									className='transition-colors hover:text-accent-blue'
+								>
+									{item.label}
+								</Link>
+							</li>
 						))}
 					</ul>
 				) : null}
@@ -73,8 +82,15 @@ const Header = memo(() => {
 						<motion.div id={menuId} className='absolute left-4 right-4 top-[calc(100%+10px)] z-[300] origin-top rounded-[24px] border border-white/15 bg-[rgba(12,36,55,0.78)] p-3 shadow-[0_18px_50px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-[18px]' initial={{ opacity: 0, y: -10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.97 }} transition={{ duration: 0.28, ease: 'easeOut' }}>
 							<ul className='font-semibold'>
 								{NAV_ITEMS.map((item, index) => (
-									<motion.li key={item.target} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04, duration: 0.2 }}>
-										<Link href={`#${item.target}`} onClick={event => { handleClick(event, item.target); setMenuOpen(false) }} className='flex h-[54px] items-center justify-between rounded-2xl px-3 transition-colors hover:bg-white/[0.06]'>
+									<motion.li key={item.target || item.href} initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04, duration: 0.2 }}>
+										<Link
+											href={item.href || `#${item.target}`}
+											onClick={event => {
+												if (item.target) handleClick(event, item.target)
+												setMenuOpen(false)
+											}}
+											className='flex h-[54px] items-center justify-between rounded-2xl px-3 transition-colors hover:bg-white/[0.06]'
+										>
 											<span>{item.label}</span><span aria-hidden className='text-white/60'>→</span>
 										</Link>
 									</motion.li>
